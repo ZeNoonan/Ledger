@@ -12,11 +12,18 @@ raw5='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020_06.xlsx'
 
 
 def main():
-    Budget_2020, EE_numbers, Project_codes, NL_2020=combine_functions()
-    st.write('this is the Budget 2020',Budget_2020)
-    st.write(Project_codes)
-    st.write ('this is the nominal ledger',NL_2020)
+    Budget = Budget_2020()
+    EE = EE_numbers()
+    Project = Project_codes()
+    NL = NL_2020()
+    st.write('this is the Budget 2020',Budget)
+    st.write(Project)
+    st.write ('this is the nominal ledger',NL)
+    test = group ( Budget )
+    st.write ('this is the Budget grouped', test)
 
+def group(x):
+    return x.groupby(['Acc_Schedule']).agg ( Budget_YTD = ( 'Budget_YTD_7','sum' ) )
 
 
 # @st.cache
@@ -24,11 +31,12 @@ def prep_data(url):
     data = pd.read_excel(url)
     return data
 
-# @st.cache
-def combine_functions():
+@st.cache
+def Budget_2020():
     Budget_2020=prep_data(raw1)
     Budget_2020['Acc_Schedule']=Budget_2020['ACCOUNT'].str[-8:-5]
     Budget_2020['Acc_Number']=Budget_2020['ACCOUNT'].str[-8:]
+    Budget_2020['Dept'] = Budget_2020['ACCOUNT'].str[-14:-9]
     Budget_2020['Budget_YTD_1'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 1'].sum(axis=1)
     Budget_2020['Budget_YTD_2'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 2'].sum(axis=1)
     Budget_2020['Budget_YTD_3'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 3'].sum(axis=1)
@@ -41,10 +49,20 @@ def combine_functions():
     Budget_2020['Budget_YTD_10'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 10'].sum(axis=1)
     Budget_2020['Budget_YTD_11'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 11'].sum(axis=1)
     Budget_2020['Budget_YTD_12'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 12'].sum(axis=1)
-    cols_to_move = ['Acc_Schedule','Acc_Number','Budget_YTD_1','Budget_YTD_2']
+    cols_to_move = ['Acc_Schedule','Acc_Number','Dept','Budget_YTD_1','Budget_YTD_2']
     Budget_2020 = Budget_2020[ cols_to_move + [ col for col in Budget_2020 if col not in cols_to_move ] ]
+    return Budget_2020
+
+def EE_numbers():
     EE_numbers=prep_data(raw2)
+    return EE_numbers
+
+def Project_codes():
     Project_codes=prep_data(raw3)
+    return Project_codes
+
+@st.cache
+def NL_2020():
     # NL_2016_2019=prep_data(raw4)
     NL_2020=prep_data(raw5)
     NL_2020['Acc_Schedule']=NL_2020['Account Code'].str[:3]
@@ -54,6 +72,6 @@ def combine_functions():
     # NL_2020.assign(Project_Code=NL_2020['Project'].str[:8]) # Why doesn't this work, it worked before!
     cols_to_move = ['Acc_Schedule', 'Project_Code','Project_Name','Description','Debit','Credit','Journal Amount','Yr.','Per.','Account Code','Project','Employee','Department','Posting Code']
     NL_2020 = NL_2020[ cols_to_move + [ col for col in NL_2020 if col not in cols_to_move ] ]
-    return Budget_2020, EE_numbers, Project_codes, NL_2020
+    return NL_2020
 
 main()
