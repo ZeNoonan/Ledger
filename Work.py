@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 
 # Just do check on totals of grouped NL and Budget for Feb 2020, just to make sure grouping is working right
+# add total to bottom of dataframe
 
 
 
@@ -25,30 +26,48 @@ coding_acc_schedule = coding_acc_schedule.iloc[:,:3]
 
 def main():
     Budget = Budget_2020()
+    # st.write ('sum of Budget ytd 6',Budget['Budget_YTD_6'].sum())
+    # st.table (Budget)
     EE = EE_numbers()
     Project = Project_codes()
     NL = NL_2020()
-    st.write (Budget.dtypes)
-    st.write('this is the Budget 2020',Budget)
-    st.write(Project)
-    st.write ('this is the nominal ledger',NL)
+    # st.write (Budget.dtypes)
+    # st.write('this is the Budget 2020',Budget)
+    # st.write(Project)
+    # st.write ('this is the nominal ledger',NL)
     test = group ( Budget )
     st.write ('this is the Budget grouped', test)
     nl_group_test = nl_group(NL)
     st.write ('this is the NL grouped', nl_group_test)
+    # st.write ('dtypes of budget group', test.dtypes)
+    # st.write ('dtypes of nl group', nl_group_test.dtypes)
     # nl_group_test.to_excel("C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx")
+    compare_df = compare (nl_group_test, test)
+    st.write ('this is the comparison', compare_df)
+
+def compare(x,y):
+    c = pd.merge (x,y, on=['Name','Acc_Schedule'], how='outer')
+    # st.write( c.loc[c['Name'].isnull()] )
+    # st.write( c.loc[c['Acc_Schedule'].isnull()] )
+    return c
 
 def group(x):
     x = x.groupby(['Name','Acc_Schedule']).agg ( Budget_YTD = ( 'Budget_YTD_6','sum' ),
-    Sorted_acc = ('Sorting','first')  ).sort_values(by=['Sorted_acc','Acc_Schedule'], ascending = [True,True])
+    Sorted_acc = ('Sorting','first')  ).sort_values(by=['Acc_Schedule','Sorted_acc'], ascending = [True,True])
     all_sum = x.sum()
     x = x.reset_index()
     x.loc[('Total')] = all_sum
+    x.at['Total','Name'] = 'Grand' #https://stackoverflow.com/questions/13842088/set-value-for-particular-cell-in-pandas-dataframe-using-index
     return x
 
 def nl_group(x):
-    return x.groupby(['Name','Acc_Schedule']).agg ( NL_YTD_Amount = ( 'Journal Amount','sum' ),
+    x = x.groupby(['Name','Acc_Schedule']).agg ( NL_YTD_Amount = ( 'Journal Amount','sum' ),
     Sorted_acc = ('Sorting','first') ).sort_values(by=['Sorted_acc','Acc_Schedule'], ascending = [True,True])
+    all_sum = x.sum()
+    x = x.reset_index()
+    x.loc[('Total')] = all_sum
+    x.at['Total','Name'] = 'Grand' 
+    return x
 
 # @st.cache
 def prep_data(url):
@@ -63,6 +82,7 @@ def Budget_2020():
     Budget_2020['Acc_Number']=Budget_2020['ACCOUNT'].str[-8:]
     Budget_2020['Dept'] = Budget_2020['ACCOUNT'].str[-14:-9]
     Budget_2020 = Budget_2020.merge (coding_acc_schedule, on='Acc_Number',how='outer')
+    st.write( Budget_2020.loc[Budget_2020['Name'].isnull()] ) # Always test after merge my issue was with the spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     Budget_2020['Budget_YTD_1'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 1'].sum(axis=1)
     Budget_2020['Budget_YTD_2'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 2'].sum(axis=1)
     Budget_2020['Budget_YTD_3'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 3'].sum(axis=1)
@@ -92,6 +112,7 @@ def NL_2020():
     # NL_2016_2019=prep_data(raw4)
     NL_2020=prep_data(raw5)
     NL_2020['Acc_Schedule']=NL_2020['Account Code'].str[:3]
+    NL_2020['Acc_Schedule']=pd.to_numeric(NL_2020['Acc_Schedule'])
     # NL_2020.assign(Acc_Schedule=NL_2020['Account Code'].str[:3])
     NL_2020['Project_Code'] = NL_2020['Project'].str[:8]
     NL_2020['Project_Name'] = NL_2020['Project'].str[8:]
