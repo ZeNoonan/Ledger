@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-# Just do check on totals of grouped NL and Budget for Feb 2020, just to make sure grouping is working right
-# add total to bottom of dataframe
-
+# https://stackoverflow.com/questions/47494720/python-pandas-subtotals-on-groupby
+# https://stackoverflow.com/questions/45971751/appending-grandtotal-and-subtotal-rows-to-two-level-row-and-column-index-datafra
+# GET RID OF 920 Sch - want to see what it looks like without it.  Maybe could have detail in another tab
 
 
 raw1='C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx'
@@ -13,7 +13,10 @@ raw3='C:/Users/Darragh/Documents/Python/Work/Data/Project Codes.xlsx'
 raw4='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
 raw5='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020_06.xlsx'
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx'))
+# st.write(coding_acc_schedule)
 coding_acc_schedule = coding_acc_schedule.iloc[:,:3]
+coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
+st.write (coding_sort)
 # st.write (coding_acc_schedule)
 
 # coding_acc_schedule = pd.DataFrame( {'Acc_Schedule':[920,921,924,926,940,941,942,943,946,947,948,951,953,954,955,956,971,972,973,999],'Name':[
@@ -36,37 +39,58 @@ def main():
     # st.write(Project)
     # st.write ('this is the nominal ledger',NL)
     test = group ( Budget )
-    st.write ('this is the Budget grouped', test)
+    # st.write ('this is the Budget grouped', test)
     nl_group_test = nl_group(NL)
-    st.write ('this is the NL grouped', nl_group_test)
+    # st.write ('this is the NL grouped', nl_group_test)
     # st.write ('dtypes of budget group', test.dtypes)
     # st.write ('dtypes of nl group', nl_group_test.dtypes)
     # nl_group_test.to_excel("C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx")
     compare_df = compare (nl_group_test, test)
     st.write ('this is the comparison', compare_df)
+    subtotal1 = subtotal(compare_df)
+    st.write (subtotal1)
+
+def subtotal(x):
+    gross_profit = x.loc['Revenue':'Cost of Sales',:].sum()
+    sub_total_overheads = x.loc['Payroll':'Other',:].sum()
+    x.loc['Gross Profit'] = gross_profit
+    x.loc['Gross Profit %'] = gross_profit / x.loc['Revenue']
+    x.loc['Sub-Total Overheads'] = sub_total_overheads
+    x.loc['EBITDA'] = gross_profit + sub_total_overheads + x.loc['IP Capitalisation']
+    x.loc['Net Profit before Tax'] = x.loc['EBITDA'] + x.loc['Depreciation'] + x.loc['Finance Lease Interest'] 
+    x['YTD_Variance'] = x['NL_YTD_Amount'] - x['Budget_YTD']
+    x = pd.merge (x,coding_sort, on=['Name'],how='inner')
+    x = x.drop(columns =['Sorting_x'])
+    x = x.rename(columns = {'Sorting_y' : 'Sorting'}).sort_values(by ='Sorting', ascending=True)
+
+    return x
+    
+    # EBITDA = gross_profit + sub_total_overheads + x.loc['IP Capitalisation']
 
 def compare(x,y):
-    c = pd.merge (x,y, on=['Name','Acc_Schedule'], how='outer')
+    c = pd.merge (x,y, on=['Name','Acc_Schedule','Sorting'], how='outer')
+    c = c.set_index('Name')
+    c['Budget_YTD'].fillna(0, inplace=True)
     # st.write( c.loc[c['Name'].isnull()] )
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return c
 
 def group(x):
     x = x.groupby(['Name','Acc_Schedule']).agg ( Budget_YTD = ( 'Budget_YTD_6','sum' ),
-    Sorted_acc = ('Sorting','first')  ).sort_values(by=['Acc_Schedule','Sorted_acc'], ascending = [True,True])
+    Sorting = ('Sorting','first')  ).sort_values(by=['Acc_Schedule','Sorting'], ascending = [True,True])
     all_sum = x.sum()
     x = x.reset_index()
-    x.loc[('Total')] = all_sum
-    x.at['Total','Name'] = 'Grand' #https://stackoverflow.com/questions/13842088/set-value-for-particular-cell-in-pandas-dataframe-using-index
+    # x.loc[('Total')] = all_sum
+    # x.at['Total','Name'] = 'Grand' #https://stackoverflow.com/questions/13842088/set-value-for-particular-cell-in-pandas-dataframe-using-index
     return x
 
 def nl_group(x):
     x = x.groupby(['Name','Acc_Schedule']).agg ( NL_YTD_Amount = ( 'Journal Amount','sum' ),
-    Sorted_acc = ('Sorting','first') ).sort_values(by=['Sorted_acc','Acc_Schedule'], ascending = [True,True])
+    Sorting = ('Sorting','first') ).sort_values(by=['Sorting','Acc_Schedule'], ascending = [True,True])
     all_sum = x.sum()
     x = x.reset_index()
-    x.loc[('Total')] = all_sum
-    x.at['Total','Name'] = 'Grand' 
+    # x.loc[('Total')] = all_sum
+    # x.at['Total','Name'] = 'Grand' 
     return x
 
 # @st.cache
@@ -81,6 +105,7 @@ def Budget_2020():
     Budget_2020['Acc_Schedule']=pd.to_numeric(Budget_2020['Acc_Schedule'])
     Budget_2020['Acc_Number']=Budget_2020['ACCOUNT'].str[-8:]
     Budget_2020['Dept'] = Budget_2020['ACCOUNT'].str[-14:-9]
+    Budget_2020.loc[:,'BUDGET 1':'BUDGET 12'] = Budget_2020.loc[:,'BUDGET 1':'BUDGET 12'] *-1
     Budget_2020 = Budget_2020.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     st.write( Budget_2020.loc[Budget_2020['Name'].isnull()] ) # Always test after merge my issue was with the spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     Budget_2020['Budget_YTD_1'] = Budget_2020.loc[:,'BUDGET 1': 'BUDGET 1'].sum(axis=1)
@@ -117,6 +142,7 @@ def NL_2020():
     NL_2020['Project_Code'] = NL_2020['Project'].str[:8]
     NL_2020['Project_Name'] = NL_2020['Project'].str[8:]
     NL_2020['Acc_Number'] = NL_2020['Account Code']
+    NL_2020['Journal Amount'] = NL_2020['Journal Amount'] * -1
     # NL_2020.assign(Project_Code=NL_2020['Project'].str[:8]) # Why doesn't this work, it worked before!
     NL_2020 = NL_2020.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     
