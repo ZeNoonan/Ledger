@@ -6,6 +6,7 @@ import streamlit as st
 # https://stackoverflow.com/questions/45971751/appending-grandtotal-and-subtotal-rows-to-two-level-row-and-column-index-datafra
 # GET RID OF 920 Sch - want to see what it looks like without it.  Maybe could have detail in another tab
 #df.columns.to_list() https://stackoverflow.com/questions/54114449/pandas-column-names-to-list-correct-method
+# Prob should add the actual month...into the dataframe as well...
 
 
 raw1='C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx'
@@ -26,7 +27,8 @@ def main():
     EE = EE_numbers()
     Project = Project_codes()
     # ytd_selection = st.sidebar.number_input ("For what period would you like to run - period 1 up to period?", 1,12,value=6, step=1)
-    ytd_selection = st.sidebar.selectbox("For what period would you like to run - period 1 up to period?",["Sep_YTD", "Oct_YTD", "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"])
+    ytd_selection = st.selectbox("For what period would you like to run - period 1 up to period?",options = ["Sep_YTD", "Oct_YTD",
+     "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5)
     NL = NL_2020(ytd_selection)
     # https://github.com/streamlit/streamlit/issues/729   This is for converting period 6 into say YTD_Feb uses a dictionary
     # maybe keep it simple first, just use 6 as period 6
@@ -37,10 +39,10 @@ def main():
     # st.write ('this is the nominal ledger',NL)
     
     test = group ( Budget,ytd_selection )
-    st.write ('this is the Budget grouped', test)
+    # st.write ('this is the Budget grouped', test)
 
     nl_group_test = nl_group(NL)
-    st.write ('this is the NL grouped', nl_group_test)
+    # st.write ('this is the NL grouped', nl_group_test)
     # st.write ('dtypes of budget group', test.dtypes)
     # st.write ('dtypes of nl group', nl_group_test.dtypes)
     # nl_group_test.to_excel("C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx")
