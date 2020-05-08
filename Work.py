@@ -35,8 +35,9 @@ def main():
     
     NL = date_selection(NL_2020(), ytd_selection)
     budget_test = date_selection(Budget_1(), ytd_selection)
-    # st.write (budget_test)
-    # st.write (NL.tail(10))
+    st.write ('budget happy up to here',budget_test.head())
+    # st.write ('nl happy up to here',NL.head())
+
     # https://github.com/streamlit/streamlit/issues/729   This is for converting period 6 into say YTD_Feb uses a dictionary
     # maybe keep it simple first, just use 6 as period 6
 
@@ -46,14 +47,20 @@ def main():
     # st.write ('this is the nominal ledger',NL)
     
     test = group ( Budget,ytd_selection )
-    # st.write ('this is the Budget grouped', test)
+    st.write ('this is the Budget grouped under old code', test)
+    test_1 = new_group( budget_test, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
+    st.write ('this is the Budget grouped under NEW code', test_1)
+    test_2 = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
 
     nl_group_test = nl_group(NL) # TRYING TO MAKE THIS FUNCTION TAKE COLUMN NAMES AS ARGUMENTS SO THAT I CAN USE BUDGET AND NL ON IT - SEE PRACTICE TAB
     st.write ('this is the NL grouped', nl_group_test)
     # st.write ('dtypes of budget group', test.dtypes)
     # st.write ('dtypes of nl group', nl_group_test.dtypes)
     # nl_group_test.to_excel("C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx")
-    compare_df = compare (nl_group_test, test)
+    
+    # compare_df = compare (nl_group_test, test)
+    compare_df = compare (test_2, test_1)
+    
     # st.write ('this is the comparison', compare_df)
     subtotal1 = subtotal(compare_df)
     st.write ('This is the Overall PL')
@@ -61,7 +68,7 @@ def main():
     st.write ('now lets go make a PL that adds in the Month only....')
     # st.write (Budget_1())
 
-# @st.cache
+@st.cache
 def NL_2020():
     NL_2020=prep_data(raw5)
     NL_2020['Acc_Schedule']=NL_2020['Account Code'].str[:3]
@@ -119,7 +126,7 @@ def date_selection(df, ytd_month_number):
     filter = df['Per.']==date_dict[ytd_month_number]
     df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
     df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
-    st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the 
+    # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
     # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     # cols_to_move = ['Acc_Schedule','Acc_Number','Sorting','Project_Code','Project_Name','Description','Debit','Credit','Journal Amount',
     # 'Yr.','Per.','Account Code','Project','Employee','Department','Posting Code']
@@ -149,11 +156,13 @@ def subtotal(x):
     x.loc['EBITDA'] = gross_profit + sub_total_overheads + x.loc['IP Capitalisation']
     x.loc['Net Profit before Tax'] = x.loc['EBITDA'] + x.loc['Depreciation'] + x.loc['Finance Lease Interest'] 
     x.loc['Net Profit %'] = x.loc['Net Profit before Tax'] / x.loc['Revenue']
-    x['YTD_Variance'] = x['NL_YTD_Amount'] - x['Budget_YTD']
+    x['YTD_Variance'] = x['NL_YTD'] - x['Budget_YTD']
+    x['Month_Variance'] = x['NL_Month'] - x['Budget_Month']
     x = pd.merge (x,coding_sort, on=['Name'],how='inner')
     x = x.drop(columns =['Sorting_x'])
     x = x.rename(columns = {'Sorting_y' : 'Sorting'}).sort_values(by ='Sorting', ascending=True)
-
+    cols_to_move = ['Name','NL_YTD','Budget_YTD','YTD_Variance','NL_Month','Budget_Month','Month_Variance']
+    x = x[ cols_to_move + [ col for col in x if col not in cols_to_move ] ]
     return x
     
     # EBITDA = gross_profit + sub_total_overheads + x.loc['IP Capitalisation']
@@ -188,6 +197,14 @@ def nl_group(x): # NL_YTD_Amount NL_Month_Amount
     x = x.reset_index()
     # x.loc[('Total')] = all_sum
     # x.at['Total','Name'] = 'Grand' 
+    return x
+
+def new_group(x,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
+    x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
+    Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
+    all_sum = x.sum()
+    x = x.reset_index()
+    x=x.rename(columns=kwargs)
     return x
 
 # @st.cache
