@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-# Seperate Monthly out of current set up to it's own dataframe
+# Bring in F1-F2
+# Bring in historical figures to do the trend on revenue? adjust for bbf uk revenue get spreadsheet which reconciles this
 
 # https://stackoverflow.com/questions/47494720/python-pandas-subtotals-on-groupby
 # https://stackoverflow.com/questions/45971751/appending-grandtotal-and-subtotal-rows-to-two-level-row-and-column-index-datafra
@@ -34,8 +35,12 @@ def main():
     NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
     compare_df = compare (NL_PL, Budget_PL)
     subtotal1 = subtotal(compare_df)
-    st.write ('This is the Overall PL')
-    st.write (subtotal1)
+    # st.write ('This is the Overall PL', subtotal1)
+    # st.write (subtotal1)
+    st.write ('This is the YTD PL', subtotal1.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+    if st.checkbox('Would you like to see the Overall Month results?'):
+        st.write ('This is the Month PL', subtotal1.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+
 
     dept_selection = st.sidebar.selectbox("Which Department do you want to see?",options = ["TV", "CG",
      "Post","IT","Pipeline","Admin","Development"],index=0)
@@ -43,8 +48,12 @@ def main():
     NL_PL_Dept = new_group_dept( x=NL, department=dept_selection ,YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
     compare_df_dept = compare (NL_PL_Dept, Budget_PL_Dept)
     subtotal_dept = subtotal(compare_df_dept)
-    st.write ('This is the Dept PL')
-    st.write (subtotal_dept)
+    # st.write ('This is PL for Dept',subtotal_dept)
+    st.write ('This is the Dept YTD PL',subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+    if st.checkbox('Would you like to see the Dept Month results?'):
+        st.write ('This is the Dept Month PL', subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+    
+
 
 @st.cache
 def NL_2020():
@@ -132,6 +141,7 @@ def subtotal(x):
     x = x.rename(columns = {'Sorting_y' : 'Sorting'}).sort_values(by ='Sorting', ascending=True)
     cols_to_move = ['Name','NL_YTD','Budget_YTD','YTD_Variance','NL_Month','Budget_Month','Month_Variance']
     x = x[ cols_to_move + [ col for col in x if col not in cols_to_move ] ]
+    x = x.set_index('Name')
     return x
     
     # EBITDA = gross_profit + sub_total_overheads + x.loc['IP Capitalisation']
