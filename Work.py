@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-# ADD INTERACTIVITY TO VARY BY DEPARTMENT - FIGURE OUT WHY NOT WORKING
+# Seperate Monthly out of current set up to it's own dataframe
 
 # https://stackoverflow.com/questions/47494720/python-pandas-subtotals-on-groupby
 # https://stackoverflow.com/questions/45971751/appending-grandtotal-and-subtotal-rows-to-two-level-row-and-column-index-datafra
