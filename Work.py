@@ -2,7 +2,10 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-# Bring in F1-F2
+st.write ('For F1-F3 should I set them up as optional as the screen looks cluttered now')
+# https://docs.streamlit.io/advanced_concepts.html
+# use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
+
 # Bring in historical figures to do the trend on revenue? adjust for bbf uk revenue get spreadsheet which reconciles this
 
 # https://stackoverflow.com/questions/47494720/python-pandas-subtotals-on-groupby
@@ -28,36 +31,84 @@ def main():
      "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5) 
      # index=5 sets default to period 6 fix up with a variable for this
     NL = date_selection(NL_2020(), ytd_selection)
-    Budget = date_selection(Budget_1(), ytd_selection)
+    Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
+    F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
+    F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
+    F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
 
     # https://github.com/streamlit/streamlit/issues/729   This is for converting period 6 into say YTD_Feb uses a dictionary
     Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
-    NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
-    compare_df = compare (NL_PL, Budget_PL)
-    subtotal1 = subtotal(compare_df)
-    # st.write ('This is the Overall PL', subtotal1)
-    # st.write (subtotal1)
-    st.write ('This is the YTD PL', subtotal1.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
-    if st.checkbox('Would you like to see the Overall Month results?'):
-        st.write ('This is the Month PL', subtotal1.loc[:,['NL_Month','Budget_Month','Month_Variance']])
-
-
-    dept_selection = st.sidebar.selectbox("Which Department do you want to see?",options = ["TV", "CG",
-     "Post","IT","Pipeline","Admin","Development"],index=0)
-    Budget_PL_Dept = new_group_dept( x=Budget, department=dept_selection, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
-    NL_PL_Dept = new_group_dept( x=NL, department=dept_selection ,YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
-    compare_df_dept = compare (NL_PL_Dept, Budget_PL_Dept)
-    subtotal_dept = subtotal(compare_df_dept)
-    # st.write ('This is PL for Dept',subtotal_dept)
-    st.write ('This is the Dept YTD PL',subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
-    if st.checkbox('Would you like to see the Dept Month results?'):
-        st.write ('This is the Dept Month PL', subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+    F1_PL = new_group( F1, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
+    F2_PL = new_group( F2, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
+    F3_PL = new_group( F3, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
+    # st.write ('Budget after new group function',Budget_PL.head())
     
+    # st.write ('F1 after new group function',F1_PL.head())
 
+    NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    # st.write ('NL after new group function',NL_PL.head())
+
+    compare_df = compare (NL_PL, Budget_PL)
+    # st.write ('this is the good version working compare df', compare_df)
+    # st.write('this is compare alt',compare_alternative(NL_PL, Budget_PL, F1_PL, F2_PL) )
+    # GET THE ABOVE FUNCTION TO WORK SIMILAR TO compare_df function
+
+    # subtotal1 = subtotal(compare_df)
+    subtotal2 = subtotal(compare_alternative(NL_PL, Budget_PL, F1_PL, F2_PL, F3_PL))
+    # st.write ('This is the new subtotal function', subtotal2)
+
+    st.write ('This is the YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F1_YTD_Variance','F2_YTD','F2_YTD_Variance','F3_YTD','F3_YTD_Variance']])
+    # if st.checkbox('Would you like to see the Company Month results?'):
+    #     st.write ('This is the Month PL', subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
+
+    st.write ('This is the Test YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+    if st.checkbox('Would you like to see the Forecast included in YTD above?'):
+        forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0)    
+        st.write ('Here is the Test YTD PL updated with the Forecast selection',test_test(subtotal2,forecast_selection))
+    if st.checkbox('Would you like to see the Company Month results?'):
+        st.write ('This is the Month PL', subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+
+
+    if st.checkbox('Would you like to see the Results for a specific Department?'):
+        dept_selection = st.selectbox("Which Department do you want to see?",options = ["TV", "CG",
+        "Post","IT","Pipeline","Admin","Development"],index=0)
+        Budget_PL_Dept = new_group_dept( x=Budget, department=dept_selection, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
+        NL_PL_Dept = new_group_dept( x=NL, department=dept_selection ,YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+        F1_PL_Dept = new_group_dept( x=F1, department=dept_selection, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
+        F2_PL_Dept = new_group_dept( x=F2, department=dept_selection, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
+        F3_PL_Dept = new_group_dept( x=F3, department=dept_selection, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
+
+        compare_df_dept = compare (NL_PL_Dept, Budget_PL_Dept)
+        subtotal_dept = subtotal(compare_alternative(NL_PL_Dept, Budget_PL_Dept, F1_PL_Dept, F2_PL_Dept, F3_PL_Dept))
+        # st.write ('This is PL for Dept',subtotal_dept)
+        st.write ('This is the Dept YTD PL',subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F2_YTD','F3_YTD']])
+        if st.checkbox('Would you like to see the Dept Month results?'):
+            st.write ('This is the Dept Month PL', subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
+
+
+def test_test(df,forecast_select):
+    forecast_dict= {"Forecast Q1":'F1_YTD',"Forecast Q2":'F2_YTD',"Forecast Q3":'F3_YTD'}
+    forecast_var= {"Forecast Q1":'F1_YTD_Variance',"Forecast Q2":'F2_YTD_Variance',"Forecast Q3":'F3_YTD_Variance'}
+    selection = forecast_dict[forecast_select]
+    selection_1 = forecast_var[forecast_select]
+    return df.loc[:,['NL_YTD','Budget_YTD','YTD_Variance',selection,selection_1]]
+
+
+# GOTTA USE MERGE I THINK FOR A CLEAN MERGING
+def compare_alternative(a,b,c,d,e):
+    x = pd.merge (a,b, on=['Name','Sorting'], how='outer')
+    y = pd.merge (x,c, on=['Name','Sorting'], how='outer')
+    z = pd.merge (y,d, on=['Name','Sorting'], how='outer')
+    xx = pd.merge (z,e, on=['Name','Sorting'], how='outer')
+    f = xx.set_index('Name')
+    f.fillna(0, inplace=True)
+    # st.write( c.loc[c['Name'].isnull()] )
+    # st.write( c.loc[c['Acc_Schedule'].isnull()] )
+    return f
 
 @st.cache
 def NL_2020():
-    NL_2020=prep_data(raw5)
+    NL_2020=prep_data(raw5, 'Sheet1')
     NL_2020['Acc_Schedule']=NL_2020['Account Code'].str[:3]
     NL_2020['Acc_Schedule']=pd.to_numeric(NL_2020['Acc_Schedule'])
     NL_2020['Project_Code'] = NL_2020['Project'].str[:8]
@@ -68,8 +119,8 @@ def NL_2020():
     return NL_2020
 
 @st.cache
-def Budget_1():
-    Budget_2020=prep_data(raw1)
+def Budget_1(url_address, sheetname):
+    Budget_2020=prep_data(url_address,sheetname)
     Budget_2020['Acc_Schedule']=Budget_2020['ACCOUNT'].str[-8:-5]
     Budget_2020['Acc_Schedule']=pd.to_numeric(Budget_2020['Acc_Schedule'])
     Budget_2020['Acc_Number']=Budget_2020['ACCOUNT'].str[-8:]
@@ -134,8 +185,17 @@ def subtotal(x):
     # CHECK UP ABOVE
 
     x.loc['Net Profit %'] = x.loc['Net Profit before Tax'] / x.loc['Revenue']
+    
     x['YTD_Variance'] = x['NL_YTD'] - x['Budget_YTD']
+    x['F1_YTD_Variance'] = x['NL_YTD'] - x['F1_YTD']
+    x['F2_YTD_Variance'] = x['NL_YTD'] - x['F2_YTD']
+    x['F3_YTD_Variance'] = x['NL_YTD'] - x['F3_YTD']
     x['Month_Variance'] = x['NL_Month'] - x['Budget_Month']
+    x['F1_Month_Variance'] = x['NL_Month'] - x['F1_Month']
+    x['F2_Month_Variance'] = x['NL_Month'] - x['F2_Month']
+    x['F3_Month_Variance'] = x['NL_Month'] - x['F3_Month']
+
+
     x = pd.merge (x,coding_sort, on=['Name'],how='inner')
     x = x.drop(columns =['Sorting_x'])
     x = x.rename(columns = {'Sorting_y' : 'Sorting'}).sort_values(by ='Sorting', ascending=True)
@@ -154,6 +214,15 @@ def compare(x,y):
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return c
 
+# def compare_alternative(x,y):
+#     # x = args.set_index('Name')
+#     x = x.set_index('Name')
+#     y = y.set_index('Name')
+#     x=pd.concat([x,y],axis=0, sort=True)
+#     return x
+
+
+
 def new_group(x,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
     x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
     Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
@@ -163,16 +232,16 @@ def new_group(x,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
     return x
 
 # @st.cache
-def prep_data(url):
-    data = pd.read_excel(url)
+def prep_data(url,sheet):
+    data = pd.read_excel(url,sheet_name=sheet)
     return data
 
 def EE_numbers():
-    EE_numbers=prep_data(raw2)
+    EE_numbers=prep_data(raw2,'Sheet1')
     return EE_numbers
 
 def Project_codes():
-    Project_codes=prep_data(raw3)
+    Project_codes=prep_data(raw3,'Sheet1')
     return Project_codes
 
 
