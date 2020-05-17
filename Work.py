@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-st.write ('For F1-F3 should I set them up as optional as the screen looks cluttered now')
+st.write ('  ')
 # https://docs.streamlit.io/advanced_concepts.html
 # use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
 
@@ -27,7 +27,7 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 def main():
     EE = EE_numbers()
     Project = Project_codes()
-    ytd_selection = st.sidebar.selectbox("For what period would you like to run - period 1 up to period?",options = ["Sep_YTD", "Oct_YTD",
+    ytd_selection = st.sidebar.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
      "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5) 
      # index=5 sets default to period 6 fix up with a variable for this
     NL = date_selection(NL_2020(), ytd_selection)
@@ -57,16 +57,30 @@ def main():
     subtotal2 = subtotal(compare_alternative(NL_PL, Budget_PL, F1_PL, F2_PL, F3_PL))
     # st.write ('This is the new subtotal function', subtotal2)
 
-    st.write ('This is the YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F1_YTD_Variance','F2_YTD','F2_YTD_Variance','F3_YTD','F3_YTD_Variance']])
+    # st.write ('This is the YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F1_YTD_Variance','F2_YTD','F2_YTD_Variance','F3_YTD','F3_YTD_Variance']])
     # if st.checkbox('Would you like to see the Company Month results?'):
     #     st.write ('This is the Month PL', subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
 
-    st.write ('This is the Test YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+    st.write ('This is the YTD PL')
+    first_slot=st.empty()
+    first_slot.dataframe (subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+    # first_slot.write ('This is the Test YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']]) 
+    # # THIS DOESN'T WORK ABOVE - ST.WRITE DOESN'T SEEM TO WORK WITH ST.EMPTY
+
     if st.checkbox('Would you like to see the Forecast included in YTD above?'):
-        forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0)    
-        st.write ('Here is the Test YTD PL updated with the Forecast selection',test_test(subtotal2,forecast_selection))
-    if st.checkbox('Would you like to see the Company Month results?'):
-        st.write ('This is the Month PL', subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+        forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+        # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
+        first_slot.dataframe (ytd_column_forecast(subtotal2,forecast_selection))
+    
+    # second_slot = st.empty()
+    if st.checkbox('Check box to see results for Month'):
+        st.write ('This is the Month PL')
+        second_slot = st.empty()
+        second_slot.dataframe (subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+        if st.checkbox('Would you like to see the Forecast included in above?'):
+            forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+            # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
+            second_slot.dataframe (month_column_forecast(subtotal2,forecast1_selection))
 
 
     if st.checkbox('Would you like to see the Results for a specific Department?'):
@@ -80,18 +94,40 @@ def main():
 
         compare_df_dept = compare (NL_PL_Dept, Budget_PL_Dept)
         subtotal_dept = subtotal(compare_alternative(NL_PL_Dept, Budget_PL_Dept, F1_PL_Dept, F2_PL_Dept, F3_PL_Dept))
-        # st.write ('This is PL for Dept',subtotal_dept)
         st.write ('This is the Dept YTD PL',subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F2_YTD','F3_YTD']])
         if st.checkbox('Would you like to see the Dept Month results?'):
             st.write ('This is the Dept Month PL', subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
 
+        st.write ('THIS IS THE REFACTORING OF DEPT CODE')
+        third_slot=st.empty()
+        third_slot.dataframe (subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
+        if st.checkbox('Would you like to see the Forecast included in Department results above?'):
+            forecast_selection = st.selectbox("Which Forecast do you want to include?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+            third_slot.dataframe (ytd_column_forecast(subtotal_dept,forecast_selection))
 
-def test_test(df,forecast_select):
+        if st.checkbox('Check box to see results for Departmental Month'):
+            st.write ('This is the Month PL')
+            fourth_slot = st.empty()
+            fourth_slot.dataframe (subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+            if st.checkbox('Would you like to see the Forecast included in Departmental Month Results?'):
+                forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+                # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
+                fourth_slot.dataframe (month_column_forecast(subtotal_dept,forecast1_selection))
+
+
+def ytd_column_forecast(df,forecast_select):
     forecast_dict= {"Forecast Q1":'F1_YTD',"Forecast Q2":'F2_YTD',"Forecast Q3":'F3_YTD'}
     forecast_var= {"Forecast Q1":'F1_YTD_Variance',"Forecast Q2":'F2_YTD_Variance',"Forecast Q3":'F3_YTD_Variance'}
     selection = forecast_dict[forecast_select]
     selection_1 = forecast_var[forecast_select]
     return df.loc[:,['NL_YTD','Budget_YTD','YTD_Variance',selection,selection_1]]
+
+def month_column_forecast(df,forecast_select):
+    forecast_dict= {"Forecast Q1":'F1_Month',"Forecast Q2":'F2_Month',"Forecast Q3":'F3_Month'}
+    forecast_var= {"Forecast Q1":'F1_Month_Variance',"Forecast Q2":'F2_Month_Variance',"Forecast Q3":'F3_Month_Variance'}
+    selection = forecast_dict[forecast_select]
+    selection_1 = forecast_var[forecast_select]
+    return df.loc[:,['NL_Month','Budget_Month','Month_Variance',selection,selection_1]]
 
 
 # GOTTA USE MERGE I THINK FOR A CLEAN MERGING
