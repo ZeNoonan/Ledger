@@ -27,13 +27,15 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 def main():
     EE = EE_numbers()
     Project = Project_codes()
+    F1_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1')
+    F2_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2')
     ytd_selection = st.sidebar.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
      "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5) 
      # index=5 sets default to period 6 fix up with a variable for this
     NL = date_selection(NL_2020(), ytd_selection)
     Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
-    F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
-    F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
+    F1 = date_selection(F1_Data, ytd_selection)
+    F2 = date_selection(F2_Data, ytd_selection)
     F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
 
     # https://github.com/streamlit/streamlit/issues/729   This is for converting period 6 into say YTD_Feb uses a dictionary
@@ -41,47 +43,27 @@ def main():
     F1_PL = new_group( F1, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
     F2_PL = new_group( F2, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
     F3_PL = new_group( F3, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
-    # st.write ('Budget after new group function',Budget_PL.head())
-    
-    # st.write ('F1 after new group function',F1_PL.head())
-
     NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
-    # st.write ('NL after new group function',NL_PL.head())
 
     compare_df = compare (NL_PL, Budget_PL)
-    # st.write ('this is the good version working compare df', compare_df)
-    # st.write('this is compare alt',compare_alternative(NL_PL, Budget_PL, F1_PL, F2_PL) )
-    # GET THE ABOVE FUNCTION TO WORK SIMILAR TO compare_df function
 
-    # subtotal1 = subtotal(compare_df)
     subtotal2 = subtotal(compare_alternative(NL_PL, Budget_PL, F1_PL, F2_PL, F3_PL))
-    # st.write ('This is the new subtotal function', subtotal2)
-
-    # st.write ('This is the YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F1_YTD_Variance','F2_YTD','F2_YTD_Variance','F3_YTD','F3_YTD_Variance']])
-    # if st.checkbox('Would you like to see the Company Month results?'):
-    #     st.write ('This is the Month PL', subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
 
     st.write ('This is the YTD PL')
     first_slot=st.empty()
-    first_slot.dataframe (subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
-    # first_slot.write ('This is the Test YTD PL', subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']]) 
-    # # THIS DOESN'T WORK ABOVE - ST.WRITE DOESN'T SEEM TO WORK WITH ST.EMPTY
+    first_slot.dataframe (subtotal2.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']]) #st.write doesn't work with st.empty()
 
     if st.checkbox('Would you like to see the Forecast included in YTD above?'):
         forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
-        # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
         first_slot.dataframe (ytd_column_forecast(subtotal2,forecast_selection))
     
-    # second_slot = st.empty()
-    if st.checkbox('Check box to see results for Month'):
-        st.write ('This is the Month PL')
-        second_slot = st.empty()
-        second_slot.dataframe (subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance']])
-        if st.checkbox('Would you like to see the Forecast included in above?'):
-            forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
-            # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
-            second_slot.dataframe (month_column_forecast(subtotal2,forecast1_selection))
-
+        if st.checkbox('Check box to see results for Month'):
+            st.write ('This is the Month PL')
+            second_slot = st.empty()
+            second_slot.dataframe (subtotal2.loc[:,['NL_Month','Budget_Month','Month_Variance']])
+            if st.checkbox('Would you like to see the Forecast included in above?'):
+                forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+                second_slot.dataframe (month_column_forecast(subtotal2,forecast1_selection))
 
     if st.checkbox('Would you like to see the Results for a specific Department?'):
         dept_selection = st.selectbox("Which Department do you want to see?",options = ["TV", "CG",
@@ -94,11 +76,7 @@ def main():
 
         compare_df_dept = compare (NL_PL_Dept, Budget_PL_Dept)
         subtotal_dept = subtotal(compare_alternative(NL_PL_Dept, Budget_PL_Dept, F1_PL_Dept, F2_PL_Dept, F3_PL_Dept))
-        st.write ('This is the Dept YTD PL',subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance','F1_YTD','F2_YTD','F3_YTD']])
-        if st.checkbox('Would you like to see the Dept Month results?'):
-            st.write ('This is the Dept Month PL', subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance','F1_Month','F2_Month','F3_Month']])
 
-        st.write ('THIS IS THE REFACTORING OF DEPT CODE')
         third_slot=st.empty()
         third_slot.dataframe (subtotal_dept.loc[:,['NL_YTD','Budget_YTD','YTD_Variance']])
         if st.checkbox('Would you like to see the Forecast included in Department results above?'):
@@ -111,9 +89,56 @@ def main():
             fourth_slot.dataframe (subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance']])
             if st.checkbox('Would you like to see the Forecast included in Departmental Month Results?'):
                 forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
-                # st.write ('Here is the Test YTD PL updated with the Forecast selection')    
                 fourth_slot.dataframe (month_column_forecast(subtotal_dept,forecast1_selection))
 
+    if st.checkbox('Click for End of Year Comparison'):
+        projection = end_of_year_forecast(nl_ytd_selection='Feb_YTD', forecast=F1_Data)
+        st.write (projection)
+
+
+# Function which summarises first half so that I can reuse it for the end of year section....
+def end_of_year_forecast(nl_ytd_selection,forecast):
+    NL = date_selection(NL_2020(), nl_ytd_selection)
+    ytd_selection='Aug_YTD'
+    Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
+    F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
+    F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
+    F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
+    Forecast_rest_year = date_selection_year(forecast, nl_ytd_selection) 
+    Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
+    Actual_plus_Forecast = new_group( Actual_plus_Forecast, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
+    F1_PL = new_group( F1, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
+    F2_PL = new_group( F2, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
+    F3_PL = new_group( F3, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
+    NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    compare_df = compare (NL_PL, Budget_PL)
+    subtotal2 = subtotal(test_compare(Actual_plus_Forecast, Budget_PL, F1_PL, F2_PL, F3_PL))
+    return subtotal2
+
+def date_selection_year(df, ytd_month_number):
+    # def date_selection(df, ytd_month_number, department=None):
+    date_dict= {"Sep_YTD":1,"Oct_YTD":2,"Nov_YTD":3,"Dec_YTD":4,"Jan_YTD":5,"Feb_YTD":6,"Mar_YTD":7,
+    "Apr_YTD":8,"May_YTD":9,"Jun_YTD":10,"Jul_YTD":11,"Aug_YTD":12}
+    df = df [ (df['Per.'] > date_dict[ytd_month_number]) ] 
+    filter = df['Per.']==date_dict[ytd_month_number]
+    df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
+    df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
+    # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
+    # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
+    return df
+
+def date_selection(df, ytd_month_number):
+    # def date_selection(df, ytd_month_number, department=None):
+    date_dict= {"Sep_YTD":1,"Oct_YTD":2,"Nov_YTD":3,"Dec_YTD":4,"Jan_YTD":5,"Feb_YTD":6,"Mar_YTD":7,
+    "Apr_YTD":8,"May_YTD":9,"Jun_YTD":10,"Jul_YTD":11,"Aug_YTD":12}
+    df = df [ (df['Per.'] <= date_dict[ytd_month_number]) ] 
+    filter = df['Per.']==date_dict[ytd_month_number]
+    df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
+    df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
+    # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
+    # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
+    return df
 
 def ytd_column_forecast(df,forecast_select):
     forecast_dict= {"Forecast Q1":'F1_YTD',"Forecast Q2":'F2_YTD',"Forecast Q3":'F3_YTD'}
@@ -137,6 +162,16 @@ def compare_alternative(a,b,c,d,e):
     z = pd.merge (y,d, on=['Name','Sorting'], how='outer')
     xx = pd.merge (z,e, on=['Name','Sorting'], how='outer')
     f = xx.set_index('Name')
+    f.fillna(0, inplace=True)
+    # st.write( c.loc[c['Name'].isnull()] )
+    # st.write( c.loc[c['Acc_Schedule'].isnull()] )
+    return f
+
+def test_compare(*args):
+    df = pd.merge(args[0],args[1], on=['Name','Sorting'], how='outer')
+    for d in args[2:]:
+        df = pd.merge(df,d, on=['Name','Sorting'], how='outer')
+    f = df.set_index('Name')
     f.fillna(0, inplace=True)
     # st.write( c.loc[c['Name'].isnull()] )
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
@@ -171,21 +206,7 @@ def Budget_1(url_address, sheetname):
 # https://stackoverflow.com/questions/52494128/call-function-without-optional-arguments-if-they-are-none
 # https://stackoverflow.com/questions/9539921/how-do-i-create-a-python-function-with-optional-arguments
 
-def date_selection(df, ytd_month_number, department=None):
-    if department is not None:
-        df = df [ df['Department']==department ]
-        # and would have to fill in the rest of the code here basically mirror below
-    else:
-        # def date_selection(df, ytd_month_number, department=None):
-        date_dict= {"Sep_YTD":1,"Oct_YTD":2,"Nov_YTD":3,"Dec_YTD":4,"Jan_YTD":5,"Feb_YTD":6,"Mar_YTD":7,
-        "Apr_YTD":8,"May_YTD":9,"Jun_YTD":10,"Jul_YTD":11,"Aug_YTD":12}
-        df = df [ (df['Per.'] <= date_dict[ytd_month_number]) ] 
-        filter = df['Per.']==date_dict[ytd_month_number]
-        df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
-        df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
-        # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
-        # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
-        return df
+
 
 def new_group_dept(x,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
     date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
