@@ -27,16 +27,18 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 def main():
     EE = EE_numbers()
     Project = Project_codes()
+    Budget_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget')
     F1_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1')
     F2_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2')
+    F3_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3')
     ytd_selection = st.sidebar.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
      "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5) 
      # index=5 sets default to period 6 fix up with a variable for this
     NL = date_selection(NL_2020(), ytd_selection)
-    Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
+    Budget = date_selection(Budget_Data, ytd_selection)
     F1 = date_selection(F1_Data, ytd_selection)
     F2 = date_selection(F2_Data, ytd_selection)
-    F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
+    F3 = date_selection(F3_Data, ytd_selection)
 
     # https://github.com/streamlit/streamlit/issues/729   This is for converting period 6 into say YTD_Feb uses a dictionary
     Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
@@ -91,20 +93,26 @@ def main():
                 forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
                 fourth_slot.dataframe (month_column_forecast(subtotal_dept,forecast1_selection))
 
-    if st.checkbox('Click for End of Year Comparison'):
-        projection = end_of_year_forecast(nl_ytd_selection='Feb_YTD', forecast=F1_Data)
-        st.write (projection)
 
+    if st.checkbox('Click for End of Year Comparison'):
+        projection_selection = st.selectbox("Which Budget/Forecast to use for rest of year?",options = ["Budget", "F1","F2","F3"],index=1)
+        projection = end_of_year_forecast(projection_selection,ytd_selection)  # if i change this to projection selection it doesnt work due to string something
+        st.write (projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
+
+    
 
 # Function which summarises first half so that I can reuse it for the end of year section....
-def end_of_year_forecast(nl_ytd_selection,forecast):
+def end_of_year_forecast(forecast,nl_ytd_selection):
     NL = date_selection(NL_2020(), nl_ytd_selection)
     ytd_selection='Aug_YTD'
     Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
     F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
     F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
     F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
-    Forecast_rest_year = date_selection_year(forecast, nl_ytd_selection) 
+    # selection_dict = {'Budget': 'Budget_Data', 'F1':'F1_Data','F2':'F2_Data', 'F3':'F3_Data'}
+    # forecast_sel = selection_dict[forecast]
+    # HOW DO I GET THE BELOW TO CONVERT TO THE STREAMLIT 
+    Forecast_rest_year = date_selection_year (Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx',forecast), nl_ytd_selection) 
     Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
     Actual_plus_Forecast = new_group( Actual_plus_Forecast, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
     Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
@@ -114,7 +122,9 @@ def end_of_year_forecast(nl_ytd_selection,forecast):
     NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
     compare_df = compare (NL_PL, Budget_PL)
     subtotal2 = subtotal(test_compare(Actual_plus_Forecast, Budget_PL, F1_PL, F2_PL, F3_PL))
+    subtotal2 = subtotal2.rename(columns = {'NL_YTD' : 'Projection', 'Budget_YTD': 'Budget', 'F1_YTD':'F1', 'F2_YTD':'F2','F3_YTD':'F3','YTD_Variance':'Var v. Budget'})
     return subtotal2
+
 
 def date_selection_year(df, ytd_month_number):
     # def date_selection(df, ytd_month_number, department=None):
