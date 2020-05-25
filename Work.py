@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-st.write ('  ')
 # https://docs.streamlit.io/advanced_concepts.html
 # use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
 
@@ -25,13 +24,14 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 # st.write (coding_acc_schedule)
 
 def main():
+    st.sidebar.title("Navigation")
     EE = EE_numbers()
     Project = Project_codes()
     Budget_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget')
     F1_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1')
     F2_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2')
     F3_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3')
-    ytd_selection = st.sidebar.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
+    ytd_selection = st.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
      "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5) 
      # index=5 sets default to period 6 fix up with a variable for this
     NL = date_selection(NL_2020(), ytd_selection)
@@ -94,14 +94,40 @@ def main():
                 fourth_slot.dataframe (month_column_forecast(subtotal_dept,forecast1_selection))
 
 
-    if st.checkbox('Click for End of Year Comparison'):
+    if st.checkbox('Click for End of Year Projection'):
         projection_selection = st.selectbox("Which Budget/Forecast to use for rest of year?",options = ["Budget", "F1","F2","F3"],index=1)
         projection = end_of_year_forecast(projection_selection,ytd_selection)  # if i change this to projection selection it doesnt work due to string something
-        st.write (projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
+        fifth_slot = st.empty()
+        fifth_slot.dataframe (projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
+        if st.checkbox ('Select for Department'):
+            dep_projection_sel=st.selectbox('Pick Department to run end of year projection', options = ["TV", "CG","Post","IT","Pipeline","Admin","Development"],index=0)
+            dep_projection = end_of_year_forecast_dept( projection_selection, ytd_selection, dep_projection_sel)
+            fifth_slot.dataframe (dep_projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
 
     
 
 # Function which summarises first half so that I can reuse it for the end of year section....
+
+def end_of_year_forecast_dept(forecast,nl_ytd_selection, dep_selection):
+    NL = date_selection(NL_2020(), nl_ytd_selection)
+    ytd_selection='Aug_YTD'
+    Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection)
+    F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
+    F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
+    F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
+    Forecast_rest_year = date_selection_year (Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx',forecast), nl_ytd_selection)
+    # I had trouble passing above variable from st.checkbox from function to function, you'll see if you try and shorten it up....
+    Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
+    Actual_plus_Forecast = new_group_dept(x=Actual_plus_Forecast, department=dep_selection, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    Budget_PL = new_group_dept(x= Budget, department=dep_selection, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
+    F1_PL = new_group_dept(x= F1,department=dep_selection, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
+    F2_PL = new_group_dept(x= F2,department=dep_selection, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
+    F3_PL = new_group_dept(x= F3,department=dep_selection, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
+    NL_PL = new_group_dept(x= NL,department=dep_selection, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    subtotal2 = subtotal(test_compare(Actual_plus_Forecast, Budget_PL, F1_PL, F2_PL, F3_PL))
+    subtotal2 = subtotal2.rename(columns = {'NL_YTD' : 'Projection', 'Budget_YTD': 'Budget', 'F1_YTD':'F1', 'F2_YTD':'F2','F3_YTD':'F3','YTD_Variance':'Var v. Budget'})
+    return subtotal2
+
 def end_of_year_forecast(forecast,nl_ytd_selection):
     NL = date_selection(NL_2020(), nl_ytd_selection)
     ytd_selection='Aug_YTD'
@@ -109,10 +135,8 @@ def end_of_year_forecast(forecast,nl_ytd_selection):
     F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection)
     F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection)
     F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection)
-    # selection_dict = {'Budget': 'Budget_Data', 'F1':'F1_Data','F2':'F2_Data', 'F3':'F3_Data'}
-    # forecast_sel = selection_dict[forecast]
-    # HOW DO I GET THE BELOW TO CONVERT TO THE STREAMLIT 
-    Forecast_rest_year = date_selection_year (Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx',forecast), nl_ytd_selection) 
+    Forecast_rest_year = date_selection_year (Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx',forecast), nl_ytd_selection)
+    # I had trouble passing above variable from st.checkbox from function to function, you'll see if you try and shorten it up....
     Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
     Actual_plus_Forecast = new_group( Actual_plus_Forecast, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
     Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
