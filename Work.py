@@ -25,7 +25,7 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 
 def main():
     st.sidebar.title("Navigation")
-    EE = EE_numbers()
+    # EE = EE_numbers()
     Project = Project_codes()
     Budget_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget')
     F1_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1')
@@ -90,7 +90,7 @@ def main():
             fourth_slot = st.empty()
             fourth_slot.dataframe (subtotal_dept.loc[:,['NL_Month','Budget_Month','Month_Variance']])
             if st.checkbox('Would you like to see the Forecast included in Departmental Month Results?'):
-                forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
+                forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1, key='Dept YTD') # use index to default
                 fourth_slot.dataframe (month_column_forecast(subtotal_dept,forecast1_selection))
 
 
