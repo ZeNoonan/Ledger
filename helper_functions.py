@@ -39,7 +39,7 @@ def date_selection(df, ytd_month_number, coding_acc_schedule):
     # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     return df
 
-def new_group(x,**kwargs): # 16 jUNE Replace Name with a function argument so that i can reuse this function
+def new_group(x,**kwargs): # 16 jUNE Replace Name with a function argument so that i can reuse this function not going to work
     x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
     Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
     all_sum = x.sum()
@@ -188,6 +188,19 @@ def date_selection_year(df, ytd_month_number, coding_acc_schedule):
     return df
 
 
+
+
+
+def new_group_project(x,coding_acc_schedule,Schedule_Name,**kwargs): # 16 jUNE Replace Name with a function argument so that i can reuse this function not going to work
+    x = x.merge (coding_acc_schedule, on='Acc_Number',how='outer')
+    x = x[x['Name']==Schedule_Name]
+    st.write (x.head())
+    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+    # return pd.pivot_table(x, index=["Project_Name"], columns=["Per."], values=["Month_Amount"], aggfunc=np.sum)
+    # all_sum = x.sum()
+    # x = x.reset_index()
+    # x=x.rename(columns=kwargs)
+    # return x
 
 
 

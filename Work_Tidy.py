@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from helper_functions import (Budget_1,date_selection, NL_2020, new_group, new_group_dept, compare, compare_alternative,
-subtotal, ytd_column_forecast, prep_data, month_column_forecast, end_of_year_forecast, end_of_year_forecast_dept, date_selection_year, format_dataframe)
+subtotal, ytd_column_forecast, prep_data, month_column_forecast, end_of_year_forecast, end_of_year_forecast_dept, date_selection_year, 
+format_dataframe, new_group_project)
 
 # https://docs.streamlit.io/advanced_concepts.html
 # use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
@@ -120,4 +121,12 @@ if st.checkbox('Click for End of Year Projection'):
 st.write ('How about for Production, we do a monthly variance against Budget of each production')
 st.write ('and we also do a monthly GP% variance, but do it on a rolling YTD against Budget')
 st.write ('this is the NL PL after date selection function', NL.head())
-st.write ('need to do the groupby on NL')
+st.write ('this is the NL PL BEFORE date selection function', NL_2020(raw5).head())
+revenue_by_project = new_group_project(NL_2020(raw5),coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+cos_by_project = new_group_project(NL_2020(raw5),coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+st.write ('need to do the groupby on NL', revenue_by_project )
+st.write ('this is revenue amoutn produced which matches PL',revenue_by_project.sum().sum())
+st.write ('this is cos amoutn produced which matches PL',cos_by_project.sum().sum())
+st.write ('this is gp amoutn produced which matches PL',gp_by_project.sum().sum())
+st.write ('trying to get gross profit', gp_by_project)
