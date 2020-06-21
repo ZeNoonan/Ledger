@@ -202,7 +202,19 @@ def new_group_project(x,coding_acc_schedule,Schedule_Name,**kwargs): # 16 jUNE R
     # x=x.rename(columns=kwargs)
     # return x
 
-
+def gp_by_project(data, coding_acc_schedule):
+    revenue_by_project = new_group_project(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+    cos_by_project = new_group_project(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+    gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    # st.write ('this is revenue amount produced which matches PL',revenue_by_project.sum().sum())
+    # st.write ('this is cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is gp amount produced which matches PL',gp_by_project.sum().sum())
+    df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
+    df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
+    # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
+    df_gp['Total'] = df_gp.sum(axis=1)
+    df_gp.loc['Total'] = df_gp.sum()
+    return df_gp
 
 
 
