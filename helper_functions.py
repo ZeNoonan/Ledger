@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-@st.cache
+# @st.cache
 def Budget_1(url_address, sheetname):
     Budget_2020=prep_data(url_address,sheetname)
     Budget_2020['Acc_Schedule']=Budget_2020['ACCOUNT'].str[-8:-5]
@@ -194,7 +194,6 @@ def date_selection_year(df, ytd_month_number, coding_acc_schedule):
 def new_group_project(x,coding_acc_schedule,Schedule_Name,**kwargs): # 16 jUNE Replace Name with a function argument so that i can reuse this function not going to work
     x = x.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     x = x[x['Name']==Schedule_Name]
-    st.write (x.head())
     return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
     # return pd.pivot_table(x, index=["Project_Name"], columns=["Per."], values=["Month_Amount"], aggfunc=np.sum)
     # all_sum = x.sum()
@@ -212,12 +211,45 @@ def gp_by_project(data, coding_acc_schedule):
     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
+    # st.write (df_gp.melt())
+    return df_gp
+    
+def long_format_nl(df_gp):
+    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
+    return df_gp
+    
+def long_format_budget(df_gp, NL):
+    max_per = NL ['Per.'].max()
+    
+    st.write (max_per)
+    # st.write (max_per.dtypes)
+    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
+    st.write (df_gp)
+    return df_gp [ df_gp ['Per.'] <= max_per ]
+
+def clean_format(df_gp):
     df_gp['Total'] = df_gp.sum(axis=1)
     df_gp.loc['Total'] = df_gp.sum()
     return df_gp
 
+def gp_by_project_budget(data, coding_acc_schedule, Project):
+    Project = Project.rename(columns = {'User Code' : 'SUBANALYSIS 0'})
+    x = pd.merge(data, Project, on=['SUBANALYSIS 0'], how='outer').rename(columns = {'Description' : 'Project_Name'})
+    revenue_by_project = new_group_project(x,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+    cos_by_project = new_group_project(x,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+    gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    # st.write ('this is revenue amount produced which matches PL',revenue_by_project.sum().sum())
+    # st.write ('this is cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is gp amount produced which matches PL',gp_by_project.sum().sum())
+    df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
+    df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns]
+    df_gp = df_gp.reset_index().set_index('Project_Name')
+    return df_gp
 
-
+# SO to restrict the Budget to the NL Period number use the max period number in NL and limit it to that 
+# think i need to do a long form data format, then merge in and simply subtract 
 
 
 
@@ -252,7 +284,7 @@ def prep_data(url,sheet):
 def EE_numbers():
     return prep_data(raw2,'Sheet1')
 
-def Project_codes():
+def Project_codes(raw3):
     return prep_data(raw3,'Sheet1')
 
 

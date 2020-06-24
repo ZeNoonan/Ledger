@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 from helper_functions import (Budget_1,date_selection, NL_2020, new_group, new_group_dept, compare, compare_alternative,
 subtotal, ytd_column_forecast, prep_data, month_column_forecast, end_of_year_forecast, end_of_year_forecast_dept, date_selection_year, 
-format_dataframe, new_group_project, gp_by_project)
+format_dataframe, new_group_project, gp_by_project, Project_codes, gp_by_project_budget,long_format_nl, long_format_budget)
 
 # https://docs.streamlit.io/advanced_concepts.html
 # use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
@@ -29,7 +29,7 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 # def main():
 st.sidebar.title("Navigation")
 # EE = EE_numbers()
-# Project = Project_codes()
+Project = Project_codes(raw3)
 Budget_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget')
 F1_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1')
 F2_Data = Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2')
@@ -116,13 +116,14 @@ if st.checkbox('Click for End of Year Projection'):
         dep_projection = end_of_year_forecast_dept( projection_selection, ytd_selection, dep_projection_sel, raw5, coding_acc_schedule, coding_sort)
         fifth_slot.dataframe (dep_projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
 
+st.write ('this is the actual gp from NL up to period 6')
+NL_GP = gp_by_project(NL_2020(raw5), coding_acc_schedule)
+st.write (NL_GP)
+st.write ('below is the budget gp by period')
+Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project)
+st.write (Budget_GP)
+st.write ('this is NL Melt', long_format_nl(NL_GP))
+st.write ('this is Budget Melt', long_format_budget(Budget_GP, long_format_nl(NL_GP)))
 
 
-st.write ('How about for Production, we do a monthly variance against Budget of each production')
 st.write ('and we also do a monthly GP% variance, but do it on a rolling YTD against Budget')
-
-
-
-st.write (gp_by_project(NL_2020(raw5), coding_acc_schedule))
-st.write ('lets do the same for Budget and Forecast')
-
