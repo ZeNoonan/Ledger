@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import seaborn as sns
 
 # @st.cache
 def Budget_1(url_address, sheetname):
@@ -205,9 +206,9 @@ def gp_by_project(data, coding_acc_schedule):
     revenue_by_project = new_group_project(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
     cos_by_project = new_group_project(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
-    # st.write ('this is revenue amount produced which matches PL',revenue_by_project.sum().sum())
-    # st.write ('this is cos amount produced which matches PL',cos_by_project.sum().sum())
-    # st.write ('this is gp amount produced which matches PL',gp_by_project.sum().sum())
+    # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project.sum().sum())
+    # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
@@ -222,11 +223,11 @@ def long_format_nl(df_gp):
 def long_format_budget(df_gp, NL):
     max_per = NL ['Per.'].max()
     
-    st.write (max_per)
+    # st.write (max_per)
     # st.write (max_per.dtypes)
     df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
     df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
-    st.write (df_gp)
+    # st.write (df_gp)
     return df_gp [ df_gp ['Per.'] <= max_per ]
 
 def clean_format(df_gp):
@@ -240,16 +241,58 @@ def gp_by_project_budget(data, coding_acc_schedule, Project):
     revenue_by_project = new_group_project(x,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
     cos_by_project = new_group_project(x,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
-    # st.write ('this is revenue amount produced which matches PL',revenue_by_project.sum().sum())
-    # st.write ('this is cos amount produced which matches PL',cos_by_project.sum().sum())
-    # st.write ('this is gp amount produced which matches PL',gp_by_project.sum().sum())
+    # st.write ('this is budget revenue amount produced which matches PL',revenue_by_project.sum().sum())
+    # st.write ('this is budget cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is budget gp amount produced which matches PL',gp_by_project.sum().sum())
     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns]
     df_gp = df_gp.reset_index().set_index('Project_Name')
     return df_gp
 
-# SO to restrict the Budget to the NL Period number use the max period number in NL and limit it to that 
-# think i need to do a long form data format, then merge in and simply subtract 
+def gp_nl_budget_comp(nl,budget):
+    x = pd.merge(nl, budget, on=['Project_Name','Per.'], how='outer')
+    x =x.fillna(value=0)
+    # st.write ('this is the dtypes', x.dtypes)
+    x['Journal_Amount'] = x['Journal_Amount_x'] - x['Journal_Amount_y']
+    # st.write ('NL GP', x['Journal_Amount_x'].sum())
+    # st.write ('Budget GP', x['Journal_Amount_y'].sum())
+    # st.write ('Variance GP', x['Journal_Amount'].sum())
+    # st.write (x)
+    xx = x.loc[:,['Project_Name','Per.','Journal_Amount']] 
+    x=x.dropna(subset=['Journal_Amount'])
+    x = x [ x['Journal_Amount'] != 0 ]
+    x = x [(x['Journal_Amount'] < -0.5) | (x['Journal_Amount'] > 0.5)]
+    x = pd.pivot_table(xx, index='Project_Name',columns = 'Per.')
+    x.columns = x.columns.droplevel(0)
+    x['Total'] = x.sum(axis=1)
+    x=x.iloc[(-x['Total'].abs()).argsort()] #https://stackoverflow.com/questions/30486263/sorting-by-absolute-value-without-changing-the-data
+    x.loc['Total'] = x.sum()
+    x.columns = x.columns.astype(str)
+    x=x.reset_index().set_index('Project_Name')
+    x=x.rename(columns={'1.0':'Sep','2.0':'Oct','3.0':'Nov','4.0':'Dec','5.0':'Jan','6.0':'Feb','7.0':'Mar','8.0':'Apr','9.0':'May',
+    '10.0':'Jun','11.0':'Jul','12.0':'Aug'}) # CONTINUE THIS ON check to see if need above code
+    return x
+
+def color_negative_red(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for negative
+    strings, black otherwise.
+    """
+    color = 'red' if val < 0 else 'black'
+    return 'color: %s' % color
+
+def format_gp(x):
+    # return x.style.format("{:,.0f}",na_rep="-")
+    return x.style.format("{:,.0f}",na_rep="-").applymap(color_negative_red)
+    # .format(background_gradient(cmap='Blues'))
+
+def budget_forecast_gp(data, coding_acc_schedule, Project,NL_melt):
+    budget = gp_by_project_budget(data, coding_acc_schedule, Project)
+    long_budget = long_format_budget(budget, NL_melt)
+    # st.write ('this is the issue with the budget',budget)
+    x = gp_nl_budget_comp(NL_melt,long_budget)
+    return format_gp(x)
 
 
 

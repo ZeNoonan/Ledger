@@ -3,7 +3,8 @@ import numpy as np
 import streamlit as st
 from helper_functions import (Budget_1,date_selection, NL_2020, new_group, new_group_dept, compare, compare_alternative,
 subtotal, ytd_column_forecast, prep_data, month_column_forecast, end_of_year_forecast, end_of_year_forecast_dept, date_selection_year, 
-format_dataframe, new_group_project, gp_by_project, Project_codes, gp_by_project_budget,long_format_nl, long_format_budget)
+format_dataframe, new_group_project, gp_by_project, Project_codes, gp_by_project_budget,long_format_nl, long_format_budget,
+gp_nl_budget_comp, clean_format, format_gp, budget_forecast_gp)
 
 # https://docs.streamlit.io/advanced_concepts.html
 # use the st.empty as a way of putting in the first dataframe, then when update for forecast, it overwrites the first empty
@@ -116,14 +117,20 @@ if st.checkbox('Click for End of Year Projection'):
         dep_projection = end_of_year_forecast_dept( projection_selection, ytd_selection, dep_projection_sel, raw5, coding_acc_schedule, coding_sort)
         fifth_slot.dataframe (dep_projection.loc[:,['Projection','Budget','Var v. Budget', 'F1','F2','F3']])
 
-st.write ('this is the actual gp from NL up to period 6')
+
+st.write ('This is the Gross Profit Variance for YTD v. Budget')
+sixth_slot=st.empty() #st.write doesn't work with st.empty()
 NL_GP = gp_by_project(NL_2020(raw5), coding_acc_schedule)
-st.write (NL_GP)
-st.write ('below is the budget gp by period')
 Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project)
-st.write (Budget_GP)
-st.write ('this is NL Melt', long_format_nl(NL_GP))
-st.write ('this is Budget Melt', long_format_budget(Budget_GP, long_format_nl(NL_GP)))
+NL_melt = long_format_nl(NL_GP)
+Budget_melt = long_format_budget(Budget_GP, NL_melt)
+# st.write ('Breakdown of GP variance', )
+# st.dataframe ( (gp_nl_budget_comp(NL_melt, Budget_melt )) )
+sixth_slot.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
+
+st.write (budget_forecast_gp(Budget_Data, coding_acc_schedule, Project, NL_melt))
+
+
 
 
 st.write ('and we also do a monthly GP% variance, but do it on a rolling YTD against Budget')
