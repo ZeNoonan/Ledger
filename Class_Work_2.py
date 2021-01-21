@@ -52,16 +52,7 @@ def PL_generation(clean_data,category_to_filter_on,**kwargs):
     return clean_data
 
 # @st.cache
-def pl_dept_generation(clean_data,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
-    # date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
-    # x = clean_data [ (clean_data.loc[:,'Department'] == date_dict[department]) ]
-    x = clean_data [ (clean_data.loc[:,'Department'] == department )]
-    x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
-    Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
-    all_sum = x.sum()
-    x = x.reset_index()
-    x=x.rename(columns=kwargs)
-    return x
+
 
 # @st.cache
 def merge_pl_dataframe(category_to_filter_on,a,b,c,d,e):
@@ -130,49 +121,57 @@ def month_column_forecast(df,forecast_select):
     selection_1 = forecast_var[forecast_select]
     return df.loc[:,['NL_Month','Budget_Month','Month_Variance',selection,selection_1]]
 
-# @st.cache
+@st.cache
 def end_of_year_forecast(ytd_selection, NL, coding_acc_schedule,projection_selection,Budget_Data,F1_Data,F2_Data,F3_Data,coding_sort,Budget_PL,F1_PL,F2_PL,F3_PL):
-    # NL = date_selection_for_PL(NL_2020(raw5), nl_ytd_selection, coding_acc_schedule)
-    ytd_selection='Aug_YTD'
-    # Budget = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','Budget'), ytd_selection, coding_acc_schedule)
-    # F1 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F1'), ytd_selection, coding_acc_schedule)
-    # F2 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F2'), ytd_selection, coding_acc_schedule)
-    # F3 = date_selection(Budget_1('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2020.xlsx','F3'), ytd_selection, coding_acc_schedule)
+    # ytd_selection='Aug_YTD'
     Forecast_rest_year = date_selection_year (projection_selection, ytd_selection, coding_acc_schedule,Budget_Data, F1_Data, F2_Data,F3_Data)
-    # I had trouble passing above variable from st.checkbox from function to function, you'll see if you try and shorten it up....
     Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
-    # return Actual_plus_Forecast
-    # st.write (Actual_plus_Forecast)
     Actual_plus_Forecast = PL_generation( Actual_plus_Forecast,'Name', YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
-    # return Actual_plus_Forecast
+    merge_all_projections = (dfs_merge(Actual_plus_Forecast, Budget_PL, F1_PL, F2_PL, F3_PL))
+    clean_all_pl = clean_format_PL_presentation(merge_all_projections, coding_sort)
+    return clean_all_pl.rename(columns = {'NL_YTD' : 'Projection', 'Budget_YTD': 'Budget', 'F1_YTD':'F1', 'F2_YTD':'F2','F3_YTD':'F3','YTD_Variance':'Var v. Budget'})
 
-    # Budget_PL = new_group( Budget, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
-    # F1_PL = new_group( F1, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
-    # F2_PL = new_group( F2, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
-    # F3_PL = new_group( F3, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
-    # NL_PL = new_group( NL, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
-    # compare_df = compare (NL_PL, Budget_PL)
-    subtotal2 = (dfs_merge(Actual_plus_Forecast, Budget_PL, F1_PL, F2_PL, F3_PL), coding_sort)
-    return subtotal2
-    # subtotal2 = clean_format_PL_presentation(subtotal2)
-    # subtotal2 = subtotal2.rename(columns = {'NL_YTD' : 'Projection', 'Budget_YTD': 'Budget', 'F1_YTD':'F1', 'F2_YTD':'F2','F3_YTD':'F3','YTD_Variance':'Var v. Budget'})
-    # return subtotal2
+@st.cache
+def end_of_year_forecast_dept(ytd_selection, NL, coding_acc_schedule,projection_selection,Budget_Data,F1_Data,F2_Data,F3_Data,
+coding_sort,Budget_PL,F1_PL,F2_PL,F3_PL,department):
+    # ytd_selection='Aug_YTD'
+    Forecast_rest_year = date_selection_year (projection_selection, ytd_selection, coding_acc_schedule,Budget_Data, F1_Data, F2_Data,F3_Data)
+    Actual_plus_Forecast = pd.concat([NL,Forecast_rest_year], axis=0)
+    Actual_plus_Forecast = pl_dept_generation( clean_data=Actual_plus_Forecast, department=department, YTD_Amount = 'NL_YTD', Month_Amount = 'NL_Month' )
+    Budget_PL_dept = pl_dept_generation( clean_data=Budget_PL, department=department, YTD_Amount = 'Budget_YTD', Month_Amount = 'Budget_Month' )
+    F1_PL_dept = pl_dept_generation( clean_data=F1_PL, department=department, YTD_Amount = 'F1_YTD', Month_Amount = 'F1_Month' )
+    F2_PL_dept = pl_dept_generation( clean_data=F2_PL, department=department, YTD_Amount = 'F2_YTD', Month_Amount = 'F2_Month' )
+    F3_PL_dept = pl_dept_generation( clean_data=F3_PL, department=department, YTD_Amount = 'F3_YTD', Month_Amount = 'F3_Month' )
+    merge_all_projections = (dfs_merge(Actual_plus_Forecast, Budget_PL_dept, F1_PL_dept, F2_PL_dept, F3_PL_dept))
+    clean_all_pl = clean_format_PL_presentation(merge_all_projections, coding_sort)
+    return clean_all_pl.rename(columns = {'NL_YTD' : 'Projection', 'Budget_YTD': 'Budget', 'F1_YTD':'F1', 'F2_YTD':'F2','F3_YTD':'F3','YTD_Variance':'Var v. Budget'})
 
-# @st.cache
+@st.cache
+def pl_dept_generation(clean_data,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
+    # date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
+    # x = clean_data [ (clean_data.loc[:,'Department'] == date_dict[department]) ]
+    x = clean_data [ (clean_data.loc[:,'Department'] == department )]
+    x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
+    Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
+    all_sum = x.sum()
+    x = x.reset_index()
+    x=x.rename(columns=kwargs)
+    return x
+
+@st.cache
 def date_selection_year(projection_selection, ytd_month_number, coding_acc_schedule,Budget_Data, F1_Data, F2_Data,F3_Data):
-    # def date_selection(df, ytd_month_number, department=None):
-    df_dict ={"Budget":Budget_Data, "F1":F1_Data, "F2":F2_Data}
+    df_dict = {"Budget":Budget_Data, "F1":F1_Data, "F2":F2_Data,"F3":F3_Data}
     df = df_dict[projection_selection]
     date_dict= {"Sep_YTD":1,"Oct_YTD":2,"Nov_YTD":3,"Dec_YTD":4,"Jan_YTD":5,"Feb_YTD":6,"Mar_YTD":7,
     "Apr_YTD":8,"May_YTD":9,"Jun_YTD":10,"Jul_YTD":11,"Aug_YTD":12}
     df = df [ (df['Per.'] > date_dict[ytd_month_number]) ] 
     filter = df['Per.']==date_dict[ytd_month_number]
     df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
-    df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
     # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     return df
 
+@st.cache
 def dfs_merge(*args):
     df = pd.merge(args[0],args[1], on=['Name','Sorting'], how='outer')
     for d in args[2:]:
@@ -182,3 +181,124 @@ def dfs_merge(*args):
     # st.write( c.loc[c['Name'].isnull()] )
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return f
+
+@st.cache
+def gp_by_project(data, coding_acc_schedule):
+    revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+    cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+    gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
+    # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
+    df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
+    df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
+    # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
+    # st.write (df_gp.melt())
+    return df_gp
+
+# def gp_by_project_budget(data, coding_acc_schedule, Project):
+#     # Project = Project.rename(columns = {'User Code' : 'SUBANALYSIS 0'})
+#     # x = pd.merge(data, Project, on=['SUBANALYSIS 0'], how='outer').rename(columns = {'Description' : 'Project_Name'})
+#     # st.write ('this is data of budget')
+#     # st.write (data)
+#     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+#     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+#     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+#     # st.write ('this is budget revenue amount produced which matches PL',revenue_by_project)
+#     # st.write ('this is budget cos amount produced which matches PL',cos_by_project.sum().sum())
+#     # st.write ('this is budget gp amount produced which matches PL',gp_by_project.sum().sum())
+#     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
+#     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns]
+#     df_gp = df_gp.reset_index().set_index('Project_Name')
+#     return df_gp
+
+@st.cache
+def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs):
+    """
+    Basically produces a table showing the monthly revenue or cost of sales by Project
+    But you can pick to use revenue or cost of sales or anything else as that is an argument in the function called Schedule_Name e.g. Revenue
+    """
+    x = x.merge (coding_acc_schedule, on=['Acc_Number','Name','Sorting'],how='outer')
+    x = x[x['Name']==Schedule_Name]
+    # st.write ('group by monthly')
+    # st.write (x)
+    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+
+# @st.cache
+def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
+    # forecast_var= {"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
+    # forecast_selection = forecast_var[data]
+    # st.write (forecast_selection)
+    budget = gp_by_project(data, coding_acc_schedule)
+    long_budget = long_format_budget(budget, NL_melt)
+    # st.write ('this is the issue with the budget',budget)
+    x = gp_nl_budget_comp(NL_melt,long_budget)
+    return format_gp(x)
+
+@st.cache
+def long_format_budget(df_gp, NL):
+    max_per = NL ['Per.'].max()
+    
+    # st.write (max_per)
+    # st.write (max_per.dtypes)
+    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
+    # st.write (df_gp)
+    return df_gp [ df_gp ['Per.'] <= max_per ]
+
+# @st.cache
+def format_gp(x):
+    # return x.style.format("{:,.0f}",na_rep="-")
+    return x.style.format("{:,.0f}",na_rep="-").applymap(color_negative_red)
+    # .format(background_gradient(cmap='Blues'))
+
+
+def color_negative_red(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for negative
+    strings, black otherwise.
+    """
+    color = 'red' if val < 0 else 'black'
+    return 'color: %s' % color
+
+@st.cache
+def long_format_nl(df_gp):
+    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
+    return df_gp
+
+@st.cache
+def gp_nl_budget_comp(nl,budget):
+    x = pd.merge(nl, budget, on=['Project_Name','Per.'], how='outer')
+    x =x.fillna(value=0)
+    # st.write ('this is the dtypes', x.dtypes)
+    x['Journal_Amount'] = x['Journal_Amount_x'] - x['Journal_Amount_y']
+    # st.write ('NL GP', x['Journal_Amount_x'].sum())
+    # st.write ('Budget GP', x['Journal_Amount_y'].sum())
+    # st.write ('Variance GP', x['Journal_Amount'].sum())
+    # st.write (x)
+    xx = x.loc[:,['Project_Name','Per.','Journal_Amount']] 
+    x=x.dropna(subset=['Journal_Amount'])
+    x = x [ x['Journal_Amount'] != 0 ]
+    x = x [(x['Journal_Amount'] < -0.5) | (x['Journal_Amount'] > 0.5)]
+    x = pd.pivot_table(xx, index='Project_Name',columns = 'Per.')
+    x.columns = x.columns.droplevel(0)
+    x['Total'] = x.sum(axis=1)
+    x=x.iloc[(-x['Total'].abs()).argsort()] #https://stackoverflow.com/questions/30486263/sorting-by-absolute-value-without-changing-the-data
+    x.loc['Total'] = x.sum()
+    x.columns = x.columns.astype(str)
+    x=x.reset_index().set_index('Project_Name')
+    x=x.rename(columns={'1.0':'Sep','2.0':'Oct','3.0':'Nov','4.0':'Dec','5.0':'Jan','6.0':'Feb','7.0':'Mar','8.0':'Apr','9.0':'May',
+    '10.0':'Jun','11.0':'Jul','12.0':'Aug'}) # CONTINUE THIS ON check to see if need above code
+    return x
+
+# def dept_view(x,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
+#     date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
+#     x = x [ (x.loc[:,'Department'] == date_dict[department]) ]
+#     x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
+#     Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
+#     all_sum = x.sum()
+#     x = x.reset_index()
+#     x=x.rename(columns=kwargs)
+#     return x
