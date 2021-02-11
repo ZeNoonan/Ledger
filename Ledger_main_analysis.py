@@ -5,7 +5,7 @@ import streamlit as st
 # from Ledger_helper_functions import*
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
-long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp)
+long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos)
 
 st.set_page_config(layout="wide")
 
@@ -121,7 +121,7 @@ with col1:
 
 with col2:
     with st.beta_expander('Check box to see results for Month'):
-        st.write ('This is the Month PL')
+        # st.write ('This is the Month PL')
         second_slot = st.empty()
         second_slot.dataframe (Budget_Actual.actual_v_budget_month())
         if st.checkbox('Would you like to see the Forecast included in above?'):
@@ -165,6 +165,10 @@ with col3:
         # Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project_codes)
         Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
         NL_melt = long_format_nl(NL_GP)
+        # st.write ('this is NL GP')
+        # st.write (NL_GP)
+        # st.write ('this is Budget GP ORIGINAL')
+        # st.write (Budget_GP)
         Budget_melt = long_format_budget(Budget_GP, NL_melt)
         st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
 
@@ -176,3 +180,15 @@ with col4:
         forecast_selection = forecast_var[one_selection]
         st.dataframe (budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt))
 
+with st.beta_expander('GP Analysis'):
+        NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
+        # st.write(NL_GP)
+        # Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project_codes)
+        Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
+        NL_melt = long_format_nl(NL_GP)
+        # st.write ('this is NL GP')
+        # st.write (NL_melt)
+        # st.write ('this is Budget GP')
+        # st.write (Budget_GP)
+        Budget_melt = long_format_budget(Budget_GP, NL_melt)
+        st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
