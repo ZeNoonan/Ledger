@@ -187,6 +187,8 @@ def gp_by_project(data, coding_acc_schedule):
     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    # st.write ('this is gp by project in good function')
+    # st.write (gp_by_project)
     # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
     # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
     # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
@@ -196,21 +198,21 @@ def gp_by_project(data, coding_acc_schedule):
     # st.write (df_gp.melt())
     return df_gp
 
-# def gp_by_project_budget(data, coding_acc_schedule, Project):
-#     # Project = Project.rename(columns = {'User Code' : 'SUBANALYSIS 0'})
-#     # x = pd.merge(data, Project, on=['SUBANALYSIS 0'], how='outer').rename(columns = {'Description' : 'Project_Name'})
-#     # st.write ('this is data of budget')
-#     # st.write (data)
-#     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
-#     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
-#     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
-#     # st.write ('this is budget revenue amount produced which matches PL',revenue_by_project)
-#     # st.write ('this is budget cos amount produced which matches PL',cos_by_project.sum().sum())
-#     # st.write ('this is budget gp amount produced which matches PL',gp_by_project.sum().sum())
-#     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
-#     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns]
-#     df_gp = df_gp.reset_index().set_index('Project_Name')
-#     return df_gp
+# @st.cache
+def gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue'):
+    df_gp = group_by_monthly_by_production(data,coding_acc_schedule,Schedule_Name, Month_Amount = 'NL_Month')
+    # st.write('this is df_gp within function')
+    # st.write (df_gp)
+    # cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+    # re_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
+    # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
+    df_gp = pd.DataFrame (df_gp.to_records()).set_index('Project_Name')
+    df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
+    # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
+    # st.write (df_gp.melt())
+    return df_gp
 
 @st.cache
 def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs):
@@ -223,6 +225,11 @@ def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs)
     # st.write ('group by monthly')
     # st.write (x)
     return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+
+# def gp_analysis(data,coding_acc_schedule):
+#     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
+#     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+
 
 # @st.cache
 def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
