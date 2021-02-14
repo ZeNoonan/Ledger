@@ -160,35 +160,40 @@ col3,col4 = st.beta_columns(2)
 with col3:
     with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
         st.selectbox("Budget is below",options = ["Budget"],index=0, key='budget_index')
-        # sixth_slot=st.empty() #st.write doesn't work with st.empty()
         NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
-        # Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project_codes)
         Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
         NL_melt = long_format_nl(NL_GP)
-        # st.write ('this is NL GP')
-        # st.write (NL_GP)
-        # st.write ('this is Budget GP ORIGINAL')
-        # st.write (Budget_GP)
         Budget_melt = long_format_budget(Budget_GP, NL_melt)
         st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
 
 with col4:
     with st.beta_expander('Which Forecast do you want to run?'):
-        one_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
-        # seventh_slot=st.empty()
-        forecast_var= {"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
+        one_selection = st.selectbox("Which Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
+        forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
         forecast_selection = forecast_var[one_selection]
         st.dataframe (budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt))
 
-with st.beta_expander('GP Analysis'):
-        NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
-        # st.write(NL_GP)
-        # Budget_GP = gp_by_project_budget(Budget_Data, coding_acc_schedule, Project_codes)
-        Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
-        NL_melt = long_format_nl(NL_GP)
-        # st.write ('this is NL GP')
-        # st.write (NL_melt)
-        # st.write ('this is Budget GP')
-        # st.write (Budget_GP)
-        Budget_melt = long_format_budget(Budget_GP, NL_melt)
-        st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
+col_sales,col_cos = st.beta_columns(2)
+with col_sales:
+    with st.beta_expander('Revenue Analysis'):
+            # one_selection = st.selectbox("Which Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],
+            # index=0,key='revenue_key') # use index to default
+            # forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
+            # forecast_selection = forecast_var[one_selection]
+
+            NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
+            Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
+            NL_melt = long_format_nl(NL_GP)
+            Budget_melt = long_format_budget(Budget_GP, NL_melt)
+            st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
+            
+            # x=gp_nl_budget_comp(NL_melt, Budget_melt )
+            # st.dataframe ( budget_forecast_gp (forecast_selection, coding_acc_schedule, NL_melt) )
+
+with col_cos:
+    with st.beta_expander('COS Analysis'):
+            NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
+            Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
+            NL_melt = long_format_nl(NL_GP)
+            Budget_melt = long_format_budget(Budget_GP, NL_melt)
+            st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
