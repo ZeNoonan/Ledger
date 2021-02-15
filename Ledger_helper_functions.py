@@ -187,32 +187,41 @@ def gp_by_project(data, coding_acc_schedule):
     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
-    # st.write ('this is gp by project in good function')
-    # st.write (gp_by_project)
     # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
     # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
     # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
-    # st.write (df_gp.melt())
     return df_gp
 
 # @st.cache
 def gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue'):
     df_gp = group_by_monthly_by_production(data,coding_acc_schedule,Schedule_Name, Month_Amount = 'NL_Month')
-    # st.write('this is df_gp within function')
-    # st.write (df_gp)
-    # cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
-    # re_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
-    # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
-    # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
-    # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
     df_gp = pd.DataFrame (df_gp.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
-    # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
-    # st.write (df_gp.melt())
     return df_gp
+
+# @st.cache
+def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
+    budget = gp_by_project(data, coding_acc_schedule)
+    long_budget = long_format_budget(budget, NL_melt)
+    x = gp_nl_budget_comp(NL_melt,long_budget)
+    return format_gp(x)
+
+def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name='Revenue'):
+    budget = gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name)
+    long_budget = long_format_budget(budget, NL_melt)
+    x = gp_nl_budget_comp(NL_melt,long_budget)
+    # return format_gp(x)
+    return x
+
+@st.cache
+def long_format_budget(df_gp, NL):
+    max_per = NL ['Per.'].max()
+    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
+    return df_gp [ df_gp ['Per.'] <= max_per ]
 
 @st.cache
 def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs):
@@ -231,27 +240,11 @@ def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs)
 #     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
 
 
-# @st.cache
-def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
-    # forecast_var= {"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
-    # forecast_selection = forecast_var[data]
-    # st.write (forecast_selection)
-    budget = gp_by_project(data, coding_acc_schedule)
-    long_budget = long_format_budget(budget, NL_melt)
-    # st.write ('this is the issue with the budget',budget)
-    x = gp_nl_budget_comp(NL_melt,long_budget)
-    return format_gp(x)
 
-@st.cache
-def long_format_budget(df_gp, NL):
-    max_per = NL ['Per.'].max()
-    
-    # st.write (max_per)
-    # st.write (max_per.dtypes)
-    df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
-    df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
-    # st.write (df_gp)
-    return df_gp [ df_gp ['Per.'] <= max_per ]
+
+
+
+
 
 # @st.cache
 def format_gp(x):
@@ -279,12 +272,7 @@ def long_format_nl(df_gp):
 def gp_nl_budget_comp(nl,budget):
     x = pd.merge(nl, budget, on=['Project_Name','Per.'], how='outer')
     x =x.fillna(value=0)
-    # st.write ('this is the dtypes', x.dtypes)
     x['Journal_Amount'] = x['Journal_Amount_x'] - x['Journal_Amount_y']
-    # st.write ('NL GP', x['Journal_Amount_x'].sum())
-    # st.write ('Budget GP', x['Journal_Amount_y'].sum())
-    # st.write ('Variance GP', x['Journal_Amount'].sum())
-    # st.write (x)
     xx = x.loc[:,['Project_Name','Per.','Journal_Amount']] 
     x=x.dropna(subset=['Journal_Amount'])
     x = x [ x['Journal_Amount'] != 0 ]
