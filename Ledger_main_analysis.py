@@ -5,7 +5,7 @@ import streamlit as st
 # from Ledger_helper_functions import*
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
-long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos)
+long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,budget_forecast_gp_sales_cos)
 
 st.set_page_config(layout="wide")
 
@@ -156,44 +156,45 @@ with st.beta_expander('Click for End of Year Projection'):
         dep_projection_sel=st.selectbox('Pick Department to run end of year projection', options = ["TV", "CG","Post","IT","Pipeline","Admin","Development"],index=0)
         st.dataframe (Budget_Actual.actual_v_forecast_year_projection_dept(ytd_selection, coding_acc_schedule,projection_selection,dep_projection_sel))
 
-col3,col4 = st.beta_columns(2)
-with col3:
-    with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
-        st.selectbox("Budget is below",options = ["Budget"],index=0, key='budget_index')
-        NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
-        Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
-        NL_melt = long_format_nl(NL_GP)
-        Budget_melt = long_format_budget(Budget_GP, NL_melt)
-        st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
+# col3,col4 = st.beta_columns(2)
+# with col3:
+#     with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
+#         st.selectbox("Budget is below",options = ["Budget"],index=0, key='budget_index')
+#         NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
+#         Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
+#         NL_melt = long_format_nl(NL_GP)
+#         Budget_melt = long_format_budget(Budget_GP, NL_melt)
+#         st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
 
-with col4:
-    with st.beta_expander('Which Forecast do you want to run?'):
-        one_selection = st.selectbox("Which Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
-        forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
-        forecast_selection = forecast_var[one_selection]
-        st.dataframe (budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt))
+# with col4:
+with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
+    one_selection = st.selectbox("Which Budget/Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
+    forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
+    forecast_selection = forecast_var[one_selection]
+    NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
+    Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
+    NL_melt = long_format_nl(NL_GP)
+    Budget_melt = long_format_budget(Budget_GP, NL_melt)
+    actual_v_budget_gp = budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt)
+    sort = actual_v_budget_gp.index.values.tolist()
+    st.dataframe (actual_v_budget_gp)
 
-col_sales,col_cos = st.beta_columns(2)
-with col_sales:
-    with st.beta_expander('Revenue Analysis'):
-            # one_selection = st.selectbox("Which Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],
-            # index=0,key='revenue_key') # use index to default
-            # forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
-            # forecast_selection = forecast_var[one_selection]
+    col_sales,col_cos = st.beta_columns(2)
+    with col_sales:
+            st.write('Revenue Variance by Production')
+            NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
+            Budget_Revenue = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
+            NL_melt_Revenue = long_format_nl(NL_Revenue)
+            Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
+            revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue')
+            st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
 
-            NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
-            Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
-            NL_melt = long_format_nl(NL_GP)
-            Budget_melt = long_format_budget(Budget_GP, NL_melt)
-            st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
-            
-            # x=gp_nl_budget_comp(NL_melt, Budget_melt )
-            # st.dataframe ( budget_forecast_gp (forecast_selection, coding_acc_schedule, NL_melt) )
+    with col_cos:
+                st.write('COS Variance by Production')
+                NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
+                Budget_COS = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
+                NL_melt_COS = long_format_nl(NL_COS)
+                Budget_melt_COS = long_format_budget(Budget_COS, NL_melt_COS)
+                COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales')     
+                st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
 
-with col_cos:
-    with st.beta_expander('COS Analysis'):
-            NL_GP = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
-            Budget_GP = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
-            NL_melt = long_format_nl(NL_GP)
-            Budget_melt = long_format_budget(Budget_GP, NL_melt)
-            st.dataframe ( format_gp (gp_nl_budget_comp(NL_melt, Budget_melt )) )
