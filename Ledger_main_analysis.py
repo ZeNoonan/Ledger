@@ -103,44 +103,46 @@ class Budget_v_Actual():
 
     
 
-ytd_selection = st.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
-    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=3) 
-    # index=5 sets default to period 6 fix up with a variable for this
 
-Budget_Actual = Budget_v_Actual(ytd_selection)
-col1,col2=st.beta_columns(2)
 
-with col1:
-    with st.beta_expander ('Click for YTD PL'):
-        first_slot=st.empty() 
+with st.beta_expander('Click to see Company YTD and Month PL'):
+    ytd_selection = st.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
+    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=3)
+    Budget_Actual = Budget_v_Actual(ytd_selection)
+    col1,col2=st.beta_columns(2)
+    with col1:
+        st.write ('Results for YTD PL below')
+        # first_slot=st.empty() 
+        first_slot=st.beta_container()
         first_slot.dataframe ( Budget_Actual.actual_v_budget_ytd() )
-
         if st.checkbox('Would you like to see the Forecast included in YTD above?'):
             forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='NL_YTD') # use index to default
-            st.dataframe (Budget_Actual.actual_v_forecast_ytd(forecast_selection))
+            first_slot.dataframe (Budget_Actual.actual_v_forecast_ytd(forecast_selection))
 
-with col2:
-    with st.beta_expander('Check box to see results for Month'):
-        # st.write ('This is the Month PL')
-        second_slot = st.empty()
+    with col2:
+        st.write('Results for Month PL')
+        # second_slot = st.empty()
+        second_slot = st.beta_container()
         second_slot.dataframe (Budget_Actual.actual_v_budget_month())
         if st.checkbox('Would you like to see the Forecast included in above?'):
             forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0) # use index to default
             second_slot.dataframe (Budget_Actual.actual_v_forecast_month(forecast1_selection))
 
-st.write ('---------------------------')
-st.write ('---------------------------')
-if st.checkbox('Would you like to see the Results for a specific Department?'):
+
+with st.beta_expander('Would you like to see the Results for a specific Department?'):
     dept_selection = st.selectbox("Which Department do you want to see?",options = ["TV", "CG",
     "Post","IT","Pipeline","Admin","Development"],index=0)
-    third_slot=st.empty()
-    third_slot.dataframe (Budget_Actual.actual_v_budget_ytd_dept(dept_selection))
-    if st.checkbox('Would you like to see the Forecast included in Department results above?'):
-        forecast_selection = st.selectbox("Which Forecast do you want to include?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0, key='Dept YTD') # use index to default
-        third_slot.dataframe (Budget_Actual.actual_v_forecast_ytd_dept(dept_selection, forecast_selection))
+    col3,col4 = st.beta_columns(2)
+    with col3:
+        st.write ('Results for Dept YTD PL below')
+        third_slot=st.empty()
+        third_slot.dataframe (Budget_Actual.actual_v_budget_ytd_dept(dept_selection))
+        if st.checkbox('Would you like to see the Forecast included in Department results above?'):
+            forecast_selection = st.selectbox("Which Forecast do you want to include?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0, key='Dept YTD') # use index to default
+            third_slot.dataframe (Budget_Actual.actual_v_forecast_ytd_dept(dept_selection, forecast_selection))
 
-    if st.checkbox('Check box to see results for Departmental Month'):
-        st.write ('This is the Month PL')
+    with col4:    
+        st.write ('This is the Dept Month PL')
         fourth_slot = st.empty()
         fourth_slot.dataframe (Budget_Actual.actual_v_budget_month_dept(dept_selection))
         if st.checkbox('Would you like to see the Forecast included in Departmental Month Results?'):
@@ -156,8 +158,7 @@ with st.beta_expander('Click for End of Year Projection'):
         dep_projection_sel=st.selectbox('Pick Department to run end of year projection', options = ["TV", "CG","Post","IT","Pipeline","Admin","Development"],index=0)
         st.dataframe (Budget_Actual.actual_v_forecast_year_projection_dept(ytd_selection, coding_acc_schedule,projection_selection,dep_projection_sel))
 
-# col3,col4 = st.beta_columns(2)
-# with col3:
+
 #     with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
 #         st.selectbox("Budget is below",options = ["Budget"],index=0, key='budget_index')
 #         NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
@@ -187,6 +188,7 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             NL_melt_Revenue = long_format_nl(NL_Revenue)
             Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
             revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue')
+            # https://stackoverflow.com/questions/50012525/how-to-sort-pandas-dataframe-by-custom-order-on-string-index/50012638
             st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
 
     with col_cos:
