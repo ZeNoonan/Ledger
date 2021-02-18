@@ -182,22 +182,37 @@ def dfs_merge(*args):
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return f
 
-@st.cache
-def gp_by_project(data, coding_acc_schedule):
-    revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')
-    cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales', Month_Amount = 'NL_Month')
+# @st.cache
+def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,Department=None,**kwargs):
+    """
+    Basically produces a table showing the monthly revenue or cost of sales by Project
+    But you can pick to use revenue or cost of sales or anything else as that is an argument in the function called Schedule_Name e.g. Revenue
+    """
+    x = x.merge (coding_acc_schedule, on=['Acc_Number','Name','Sorting'],how='outer')
+    x = x[x['Name']==Schedule_Name]
+    if Department !=None:
+        x = x[x['Department']==Department]
+    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+
+
+# @st.cache
+def gp_by_project(data, coding_acc_schedule,Department=None):
+    revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue',Department=Department, Month_Amount = 'NL_Month')
+    cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales',Department=Department, Month_Amount = 'NL_Month')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
     # st.write ('this is nl revenue amount produced which matches PL',revenue_by_project)
-    # st.write ('this is nl cos amount produced which matches PL',cos_by_project.sum().sum())
+    # st.write ('this is nl cos amount produced which matches PL',cos_by_project)
     # st.write ('this is nl gp amount produced which matches PL',gp_by_project.sum().sum())
     df_gp = pd.DataFrame (gp_by_project.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
     return df_gp
 
+
+
 # @st.cache
-def gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue'):
-    df_gp = group_by_monthly_by_production(data,coding_acc_schedule,Schedule_Name, Month_Amount = 'NL_Month')
+def gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue',Department=None):
+    df_gp = group_by_monthly_by_production(data,coding_acc_schedule,Schedule_Name,Department, Month_Amount = 'NL_Month')
     df_gp = pd.DataFrame (df_gp.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     return df_gp
@@ -209,8 +224,8 @@ def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
     x = gp_nl_budget_comp(NL_melt,long_budget)
     return format_gp(x)
 
-def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name='Revenue'):
-    budget = gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name)
+def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name='Revenue',Department=None):
+    budget = gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name,Department)
     long_budget = long_format_budget(budget, NL_melt)
     x = gp_nl_budget_comp(NL_melt,long_budget)
     # return format_gp(x)
@@ -223,17 +238,7 @@ def long_format_budget(df_gp, NL):
     df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
     return df_gp [ df_gp ['Per.'] <= max_per ]
 
-@st.cache
-def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,**kwargs):
-    """
-    Basically produces a table showing the monthly revenue or cost of sales by Project
-    But you can pick to use revenue or cost of sales or anything else as that is an argument in the function called Schedule_Name e.g. Revenue
-    """
-    x = x.merge (coding_acc_schedule, on=['Acc_Number','Name','Sorting'],how='outer')
-    x = x[x['Name']==Schedule_Name]
-    # st.write ('group by monthly')
-    # st.write (x)
-    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+
 
 # def gp_analysis(data,coding_acc_schedule):
 #     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue', Month_Amount = 'NL_Month')

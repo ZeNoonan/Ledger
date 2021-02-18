@@ -171,32 +171,47 @@ with st.beta_expander('Click for End of Year Projection'):
 with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
     one_selection = st.selectbox("Which Budget/Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
     forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
+    st.write('GP Variance by Production')
     forecast_selection = forecast_var[one_selection]
-    NL_GP = gp_by_project(NL_Data, coding_acc_schedule)
-    Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule)
-    NL_melt = long_format_nl(NL_GP)
-    Budget_melt = long_format_budget(Budget_GP, NL_melt)
-    actual_v_budget_gp = budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt)
-    sort = actual_v_budget_gp.index.values.tolist()
-    st.dataframe (actual_v_budget_gp)
+
+    NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue',Department='TV')
+    NL_melt_Revenue = long_format_nl(NL_Revenue)
+    revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue',Department='TV')
+    NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales',Department='TV')
+    NL_melt_COS = long_format_nl(NL_COS)
+    COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales',Department='TV')
+    actual_v_forecast = revenue_actual_budget.add (COS_actual_budget, fill_value=0)
+    actual_v_forecast = actual_v_forecast.iloc[(-actual_v_forecast['Total'].abs()).argsort()]
+    sort = actual_v_forecast.index.values.tolist()
+    st.write('Lets see if this works TV Dept')
+    st.dataframe(format_gp(actual_v_forecast))
+
+
+    # NL_GP = gp_by_project(NL_Data, coding_acc_schedule,Department=None)
+    # Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule,Department=None)
+    # NL_melt = long_format_nl(NL_GP)
+    # Budget_melt = long_format_budget(Budget_GP, NL_melt)
+    # actual_v_budget_gp = budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt)
+    # sort = actual_v_budget_gp.index.values.tolist()
+    # # st.dataframe (actual_v_budget_gp)
 
     col_sales,col_cos = st.beta_columns(2)
     with col_sales:
             st.write('Revenue Variance by Production')
-            NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue')
-            Budget_Revenue = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
+            NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue',Department='TV')
+            # Budget_Revenue = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
             NL_melt_Revenue = long_format_nl(NL_Revenue)
-            Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
-            revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue')
+            # Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
+            revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue',Department='TV')
             # https://stackoverflow.com/questions/50012525/how-to-sort-pandas-dataframe-by-custom-order-on-string-index/50012638
             st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
 
     with col_cos:
-                st.write('COS Variance by Production')
-                NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
-                Budget_COS = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
-                NL_melt_COS = long_format_nl(NL_COS)
-                Budget_melt_COS = long_format_budget(Budget_COS, NL_melt_COS)
-                COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales')     
-                st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
+            st.write('COS Variance by Production')
+            NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales',Department='TV')
+            # Budget_COS = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
+            NL_melt_COS = long_format_nl(NL_COS)
+            # Budget_melt_COS = long_format_budget(Budget_COS, NL_melt_COS)
+            COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales',Department='TV')     
+            st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
 
