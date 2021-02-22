@@ -227,9 +227,9 @@ def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
 def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name='Revenue',Department=None):
     budget = gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name,Department)
     long_budget = long_format_budget(budget, NL_melt)
-    x = gp_nl_budget_comp(NL_melt,long_budget)
+    return gp_nl_budget_comp(NL_melt,long_budget)
     # return format_gp(x)
-    return x
+    # return x
 
 @st.cache
 def long_format_budget(df_gp, NL):
