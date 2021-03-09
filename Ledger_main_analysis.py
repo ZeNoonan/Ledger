@@ -5,7 +5,7 @@ import streamlit as st
 # from Ledger_helper_functions import*
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
-long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,budget_forecast_gp_sales_cos)
+long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,budget_forecast_gp_sales_cos, get_total_by_month)
 
 st.set_page_config(layout="wide")
 
@@ -18,7 +18,7 @@ Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project
 
 @st.cache
 def load_ledger_data():
-    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_04.xlsx')
+    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
 NL = load_ledger_data().copy()
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
@@ -114,7 +114,7 @@ class Budget_v_Actual():
 
 with st.beta_expander('Click to see Company YTD and Month PL'):
     ytd_selection = st.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
-    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=3)
+    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5)
     Budget_Actual = Budget_v_Actual(ytd_selection)
     col1,col2=st.beta_columns(2)
     with col1:
@@ -221,17 +221,41 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             # # Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
             # revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue',Department=None)
             # https://stackoverflow.com/questions/50012525/how-to-sort-pandas-dataframe-by-custom-order-on-string-index/50012638
-            x=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department='TV')
-            # st.write ('this is x before ')
-            st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
-            st.write ('this is x Revenue variance',format_gp((x).reindex(sort)))
+            revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=None)
+            # y=x.sum().reset_index()
+            # st.write('this is y',y)
+            # Month=y['Per.'].tolist()
+            # Amount=y[0].tolist()
+            # st.write(Month)
+            # st.write(Amount)
+            
+            # yy=y.reset_index()
+            # a=x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month','Per.':'Month'}).set_index('Month').transpose()
+            # st.write('this is a',a)
+            # xx=a.transpose()
+            # st.write('this is transpose',xx)
+            # xx=a.pivot(columns='Month')
+            # st.write(yy)
+            # st.write(xx)
+            # y.rename(columns={'0':'Total Amount'}, inplace=True)
+            # st.write (y)
+            # st.write (y.pivot())
+
+            # st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
+            st.write (format_gp((revenue_variance).reindex(sort)))
+            st.write (format_gp(get_total_by_month(revenue_variance)))
+            st.write ('Check to see that Revenue / COS variance adds up to GP variance')
 
     with col_cos:
             st.write('COS Variance by Production')
+            cos_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+            forecast_selection,Schedule_Name='Cost of Sales', Department=None)
+            st.write (format_gp((cos_variance).reindex(sort)))
+            st.write (format_gp(get_total_by_month(cos_variance)))
             # NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales',Department=None)
             # # Budget_COS = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
             # NL_melt_COS = long_format_nl(NL_COS)
             # # Budget_melt_COS = long_format_budget(Budget_COS, NL_melt_COS)
             # COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales',Department=None)     
-            st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
+            # st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
 
