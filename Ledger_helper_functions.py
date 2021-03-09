@@ -286,12 +286,15 @@ def gp_nl_budget_comp(nl,budget):
     x.columns = x.columns.droplevel(0)
     x['Total'] = x.sum(axis=1)
     x=x.iloc[(-x['Total'].abs()).argsort()] #https://stackoverflow.com/questions/30486263/sorting-by-absolute-value-without-changing-the-data
-    x.loc['Total'] = x.sum()
+    # x.loc['Total'] = x.sum()
     x.columns = x.columns.astype(str)
     x=x.reset_index().set_index('Project_Name')
     x=x.rename(columns={'1.0':'Sep','2.0':'Oct','3.0':'Nov','4.0':'Dec','5.0':'Jan','6.0':'Feb','7.0':'Mar','8.0':'Apr','9.0':'May',
     '10.0':'Jun','11.0':'Jul','12.0':'Aug'}) # CONTINUE THIS ON check to see if need above code
     return x
+
+def get_total_by_month(x):
+    return x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month_','Per.':'Month'}).set_index('Month').transpose()
 
 # def dept_view(x,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
 #     date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
