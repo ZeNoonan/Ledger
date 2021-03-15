@@ -205,31 +205,68 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             st.write (format_gp((cos_variance).reindex(sort)))
             st.write (format_gp(get_total_by_month(cos_variance)))
 
-st.write('TIME TO DO SOME GRAPHS JUST TO HAVE ON HAND')
-st.write ('nl', NL_Data.query('`Account Code`=="921-0500"').head())
+st.write('TIME TO DO SOME GRAPHS JUST TO HAVE ON HAND HEADCOUNT BY PROJECT OVER THE YEARS')
+st.write ('nl', NL_Data.query('`Account Code`=="921-0500"').sort_values(by='Employee',ascending=False).head())
 sch_921=NL_Data.query('`Account Code`=="921-0500"').loc[:,
-['Description','Journal Amount','Src. Account','Jrn. No.','Origin','Jrn. Date','Yr.','Per.']]
-st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-st.write ( sch_921[ sch_921['Description'].str.contains('Credit')])
-st.write ( sch_921[ sch_921['Jrn. No.'].str.contains('CR')])
-group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','Yr.','Per.'])['Description'].count().reset_index()
-st.write(group_supplier)
-st.write(sch_921.query('`Per.`==1 and `Src. Account`=="BUK02"').head()) # will need to filter out UK seperately and add back in groupby on description
-st.write(sch_921.query('`Per.`==2 and `Src. Account`=="FPL01"'))
+['Description','Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project']]
+# st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
+group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','Yr.','Per.','Project'])['Journal Amount'].sum().reset_index()
+# st.write('group supplier project',group_supplier.head())
+# st.write(sch_921.query('`Per.`==1 and `Src. Account`=="BUK02"').head()) # will need to filter out UK seperately and add back in groupby on description
+# st.write(sch_921.query('`Per.`==2 and `Src. Account`=="FPL01"'))
 # First thing first, filter out BBF UK
-group_no_UK = group_supplier.query('`Src. Account`!="BUK02"').rename(columns={'Description':'Count'})
-st.write ('no UK', group_no_UK)
+group_UK = sch_921.query('`Src. Account`=="BUK02"')
+group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
 
-st.write ('this is credit notes filtered')
-credit_notes=group_no_UK['Jrn. No.'].str.contains('CN|CR')
-filter_credit_notes=group_no_UK[credit_notes]
-filter_credit_notes['Count']=-1
-st.write(filter_credit_notes)
+def credit_notes_resolve(x):
+    credit_notes=x['Jrn. No.'].str.contains('CN|CR')
+    filter_credit_notes=x[credit_notes]
+    filter_non_credit_notes=x[~credit_notes]
+    non_UK_contractor_921=pd.concat([filter_credit_notes,filter_non_credit_notes])
+    non_UK_contractor_921['Payroll_Amt'] = non_UK_contractor_921.groupby (['Jrn. No.'])['Journal Amount'].transform('sum')
+    non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
+    return non_UK_contractor_921
 
-st.write ('this is non-credit notes filtered')
-filter_non_credit_notes=group_no_UK[~credit_notes]
-filter_non_credit_notes['Count']=1
-st.write(filter_non_credit_notes)
+st.write('this is Non UK contractor Ready', credit_notes_resolve(group_no_UK).head())
+
+def UK_clean_921(x):
+    x['Payroll_Amt'] = x.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
+    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    return x
+
+st.write('UK Ready', UK_clean_921(group_UK).drop(['Description'], axis=1).head())
+
+sch_921_ee=NL_Data.query('`Account Code`=="921-0500"').loc[:,
+['Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project','Employee - Ext. Code']]
+
+# st.write('new way finding string')
+# st.write(sch_921_ee[sch_921_ee['Employee'].apply(lambda x: isinstance(x, str))])
+
+def company_ee_project(x):
+    # x['Employee']=x['Employee'].replace('" "','',regex=True).astype(float)
+    # x['Employee']=x['Employee'].str.replace(" ","")
+    x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
+    x= x.query('`Employee - Ext. Code`>0.5')
+    x['Payroll_Amt'] = x.groupby (['Yr.','Per.','Employee - Ext. Code'])['Journal Amount'].transform('sum')
+    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    return x
+
+st.write('employee ready')
+st.write(company_ee_project(sch_921_ee).drop(['Employee - Ext. Code'], axis=1).head())
+
+def combined_921_headcount(ee,UK,Mauve):
+    employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
+    UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
+    Mauve_2021=credit_notes_resolve(Mauve).reset_index()
+    combined = pd.concat([employee_921, UK_921, Mauve_2021]).drop(['index'],axis=1)
+    combined['Headcount']=pd.to_numeric(combined['Headcount'])
+    return combined
+
+headcount_ready=combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
+st.write ('combined 921',headcount_ready) 
+st.write(headcount_ready.sum(axis=0, skipna=True))
+
+
 
 # just need to add the two dataframes and group on year and period
 # then add in UK headcount
@@ -237,13 +274,6 @@ st.write(filter_non_credit_notes)
 # should I start a new file?
 # probably as it's going to look at historical analysis in terms of headcount to understand that
 
-# group_no_UK['Count']=1
-# st.write(group_no_UK)
-# if group_no_UK['Jrn. No.'].str.contains('CN|CR'):
-#     group_no_UK['Count']=-1
-# else:
-#     group_no_UK['Count']=1
-# st.write('after if else', group_no_UK)
 
 
 # https://stackoverflow.com/questions/12572362/how-to-get-a-string-after-a-specific-substring
