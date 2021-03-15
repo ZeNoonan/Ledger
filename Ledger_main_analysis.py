@@ -183,68 +183,20 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
     st.write('GP Variance by Production')
     forecast_selection = forecast_var[one_selection]
 
-    NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue',Department=None)
-    NL_melt_Revenue = long_format_nl(NL_Revenue)
-    revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue',Department=None)
-    NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales',Department=None)
-    NL_melt_COS = long_format_nl(NL_COS)
-    COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales',Department=None)
-    actual_v_forecast = revenue_actual_budget.add (COS_actual_budget, fill_value=0)
-    actual_v_forecast = actual_v_forecast.iloc[(-actual_v_forecast['Total'].abs()).argsort()]
-    sort = actual_v_forecast.index.values.tolist()
-    # st.write('Lets see if this works TV Dept')
-    st.dataframe(format_gp(actual_v_forecast))
-
     Revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=None)
     COS_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Cost of Sales', Department=None)
     actual_v__forecast = Revenue_variance.add (COS_variance, fill_value=0)
     actual_v__forecast = actual_v__forecast.iloc[(-actual_v__forecast['Total'].abs()).argsort()]
     sort = actual_v__forecast.index.values.tolist()
-    st.write('Lets see if this works ')
     st.dataframe(format_gp(actual_v__forecast))    
-
-
-    # NL_GP = gp_by_project(NL_Data, coding_acc_schedule,Department=None)
-    # Budget_GP = gp_by_project(Budget_Data, coding_acc_schedule,Department=None)
-    # NL_melt = long_format_nl(NL_GP)
-    # Budget_melt = long_format_budget(Budget_GP, NL_melt)
-    # actual_v_budget_gp = budget_forecast_gp(forecast_selection, coding_acc_schedule, NL_melt)
-    # sort = actual_v_budget_gp.index.values.tolist()
-    # # st.dataframe (actual_v_budget_gp)
+    st.write (format_gp(get_total_by_month(actual_v__forecast)))
 
     col_sales,col_cos = st.beta_columns(2)
     with col_sales:
             st.write('Revenue Variance by Production')
-            # NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Revenue',Department=None)
-            # # Budget_Revenue = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Revenue')
-            # NL_melt_Revenue = long_format_nl(NL_Revenue)
-            # # Budget_melt_revenue = long_format_budget(Budget_Revenue, NL_melt_Revenue)
-            # revenue_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name='Revenue',Department=None)
-            # https://stackoverflow.com/questions/50012525/how-to-sort-pandas-dataframe-by-custom-order-on-string-index/50012638
             revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=None)
-            # y=x.sum().reset_index()
-            # st.write('this is y',y)
-            # Month=y['Per.'].tolist()
-            # Amount=y[0].tolist()
-            # st.write(Month)
-            # st.write(Amount)
-            
-            # yy=y.reset_index()
-            # a=x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month','Per.':'Month'}).set_index('Month').transpose()
-            # st.write('this is a',a)
-            # xx=a.transpose()
-            # st.write('this is transpose',xx)
-            # xx=a.pivot(columns='Month')
-            # st.write(yy)
-            # st.write(xx)
-            # y.rename(columns={'0':'Total Amount'}, inplace=True)
-            # st.write (y)
-            # st.write (y.pivot())
-
-            # st.dataframe ( format_gp(revenue_actual_budget.reindex(sort)) )
             st.write (format_gp((revenue_variance).reindex(sort)))
             st.write (format_gp(get_total_by_month(revenue_variance)))
-            st.write ('Check to see that Revenue / COS variance adds up to GP variance')
 
     with col_cos:
             st.write('COS Variance by Production')
@@ -252,10 +204,48 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             forecast_selection,Schedule_Name='Cost of Sales', Department=None)
             st.write (format_gp((cos_variance).reindex(sort)))
             st.write (format_gp(get_total_by_month(cos_variance)))
-            # NL_COS = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name='Cost of Sales',Department=None)
-            # # Budget_COS = gp_by_project_sales_cos(Budget_Data, coding_acc_schedule,Schedule_Name='Cost of Sales')
-            # NL_melt_COS = long_format_nl(NL_COS)
-            # # Budget_melt_COS = long_format_budget(Budget_COS, NL_melt_COS)
-            # COS_actual_budget = budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_COS,Schedule_Name='Cost of Sales',Department=None)     
-            # st.dataframe ( format_gp(COS_actual_budget.reindex(sort))  )
 
+st.write('TIME TO DO SOME GRAPHS JUST TO HAVE ON HAND')
+st.write ('nl', NL_Data.query('`Account Code`=="921-0500"').head())
+sch_921=NL_Data.query('`Account Code`=="921-0500"').loc[:,
+['Description','Journal Amount','Src. Account','Jrn. No.','Origin','Jrn. Date','Yr.','Per.']]
+st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
+st.write ( sch_921[ sch_921['Description'].str.contains('Credit')])
+st.write ( sch_921[ sch_921['Jrn. No.'].str.contains('CR')])
+group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','Yr.','Per.'])['Description'].count().reset_index()
+st.write(group_supplier)
+st.write(sch_921.query('`Per.`==1 and `Src. Account`=="BUK02"').head()) # will need to filter out UK seperately and add back in groupby on description
+st.write(sch_921.query('`Per.`==2 and `Src. Account`=="FPL01"'))
+# First thing first, filter out BBF UK
+group_no_UK = group_supplier.query('`Src. Account`!="BUK02"').rename(columns={'Description':'Count'})
+st.write ('no UK', group_no_UK)
+
+st.write ('this is credit notes filtered')
+credit_notes=group_no_UK['Jrn. No.'].str.contains('CN|CR')
+filter_credit_notes=group_no_UK[credit_notes]
+filter_credit_notes['Count']=-1
+st.write(filter_credit_notes)
+
+st.write ('this is non-credit notes filtered')
+filter_non_credit_notes=group_no_UK[~credit_notes]
+filter_non_credit_notes['Count']=1
+st.write(filter_non_credit_notes)
+
+# just need to add the two dataframes and group on year and period
+# then add in UK headcount
+# but need to filter by project so we can see how many people working on each project
+# should I start a new file?
+# probably as it's going to look at historical analysis in terms of headcount to understand that
+
+# group_no_UK['Count']=1
+# st.write(group_no_UK)
+# if group_no_UK['Jrn. No.'].str.contains('CN|CR'):
+#     group_no_UK['Count']=-1
+# else:
+#     group_no_UK['Count']=1
+# st.write('after if else', group_no_UK)
+
+
+# https://stackoverflow.com/questions/12572362/how-to-get-a-string-after-a-specific-substring
+
+# use groupby on Source Account, then groupby on journal no. but exclude CR in journal no.
