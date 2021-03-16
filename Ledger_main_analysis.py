@@ -8,6 +8,7 @@ pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, e
 long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,budget_forecast_gp_sales_cos, get_total_by_month)
 
 st.set_page_config(layout="wide")
+pd.set_option('use_inf_as_na', True)
 
 Budget_2020_Raw, F1_2020_Raw, F2_2020_Raw, F3_2020_Raw = [pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2021.xlsx',sheet_name=x) 
 for x in ['Budget','F1', 'F2', 'F3']]
@@ -206,7 +207,7 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             st.write (format_gp(get_total_by_month(cos_variance)))
 
 st.write('TIME TO DO SOME GRAPHS JUST TO HAVE ON HAND HEADCOUNT BY PROJECT OVER THE YEARS')
-st.write ('nl', NL_Data.query('`Account Code`=="921-0500"').sort_values(by='Employee',ascending=False).head())
+# st.write ('nl', NL_Data.query('`Account Code`=="921-0500"').sort_values(by='Employee',ascending=False).head())
 sch_921=NL_Data.query('`Account Code`=="921-0500"').loc[:,
 ['Description','Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project']]
 # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
@@ -227,20 +228,17 @@ def credit_notes_resolve(x):
     non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
     return non_UK_contractor_921
 
-st.write('this is Non UK contractor Ready', credit_notes_resolve(group_no_UK).head())
+# st.write('this is Non UK contractor Ready', credit_notes_resolve(group_no_UK).head())
 
 def UK_clean_921(x):
     x['Payroll_Amt'] = x.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
     return x
 
-st.write('UK Ready', UK_clean_921(group_UK).drop(['Description'], axis=1).head())
+# st.write('UK Ready', UK_clean_921(group_UK).drop(['Description'], axis=1).head())
 
 sch_921_ee=NL_Data.query('`Account Code`=="921-0500"').loc[:,
 ['Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project','Employee - Ext. Code']]
-
-# st.write('new way finding string')
-# st.write(sch_921_ee[sch_921_ee['Employee'].apply(lambda x: isinstance(x, str))])
 
 def company_ee_project(x):
     # x['Employee']=x['Employee'].replace('" "','',regex=True).astype(float)
@@ -249,10 +247,9 @@ def company_ee_project(x):
     x= x.query('`Employee - Ext. Code`>0.5')
     x['Payroll_Amt'] = x.groupby (['Yr.','Per.','Employee - Ext. Code'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
     return x
 
-st.write('employee ready')
-st.write(company_ee_project(sch_921_ee).drop(['Employee - Ext. Code'], axis=1).head())
 
 def combined_921_headcount(ee,UK,Mauve):
     employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
@@ -260,11 +257,29 @@ def combined_921_headcount(ee,UK,Mauve):
     Mauve_2021=credit_notes_resolve(Mauve).reset_index()
     combined = pd.concat([employee_921, UK_921, Mauve_2021]).drop(['index'],axis=1)
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
+    # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
+    # combined=combined.reset_index()
+    combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['Yr.','Per.','Headcount'], ascending=[True,True,False])
+    combined['Yr.']=combined['Yr.']+2000
+    combined=combined.rename(columns={'Yr.':'year', 'Per.':'month'})
+    combined['day']=1
+    combined['date']=pd.to_datetime(combined[['year','month','day']],infer_datetime_format=True)
     return combined
 
 headcount_ready=combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
-st.write ('combined 921',headcount_ready) 
-st.write(headcount_ready.sum(axis=0, skipna=True))
+# st.write ('combined 921',headcount_ready.head(10))
+
+filtered_headcount_top=headcount_ready.groupby('date').head(2)
+st.write(filtered_headcount_top)
+
+def pivot_headcount(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['year','Project'], columns=['month'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Project').drop(['year'],axis=1)
+    return summary
+
+st.write(format_gp(pivot_headcount(headcount_ready)))
 
 
 
