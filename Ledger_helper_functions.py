@@ -296,12 +296,60 @@ def gp_nl_budget_comp(nl,budget):
 def get_total_by_month(x):
     return x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month_','Per.':'Month'}).set_index('Month').transpose()
 
-# def dept_view(x,department,**kwargs): # NOW CHANGE THE COLUMN NAMES BY USING A FUNCTION?
-#     date_dict= {"TV":'T0000',"CG":'CG000',"Post":'P0000',"Admin":'A0000',"Development":'D0000',"IT":'I0000',"Pipeline":'R0000'}
-#     x = x [ (x.loc[:,'Department'] == date_dict[department]) ]
-#     x = x.groupby(['Name']).agg ( YTD_Amount = ( 'Journal Amount','sum' ), Month_Amount = ('Month_Amount','sum'),
-#     Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
-#     all_sum = x.sum()
-#     x = x.reset_index()
-#     x=x.rename(columns=kwargs)
-#     return x
+def credit_notes_resolve(x):
+    credit_notes=x['Jrn. No.'].str.contains('CN|CR')
+    filter_credit_notes=x[credit_notes]
+    filter_non_credit_notes=x[~credit_notes]
+    non_UK_contractor_921=pd.concat([filter_credit_notes,filter_non_credit_notes])
+    non_UK_contractor_921['Payroll_Amt'] = non_UK_contractor_921.groupby (['Jrn. No.'])['Journal Amount'].transform('sum')
+    non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
+    return non_UK_contractor_921
+
+def UK_clean_921(x):
+    x['Payroll_Amt'] = x.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
+    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    return x
+
+def company_ee_project(x):
+    # x['Employee']=x['Employee'].replace('" "','',regex=True).astype(float)
+    # x['Employee']=x['Employee'].str.replace(" ","")
+    x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
+    x= x.query('`Employee - Ext. Code`>0.5')
+    x['Payroll_Amt'] = x.groupby (['Yr.','Per.','Employee - Ext. Code'])['Journal Amount'].transform('sum')
+    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
+    return x
+
+
+def combined_921_headcount(ee,UK,Mauve):
+    employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
+    UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
+    Mauve_2021=credit_notes_resolve(Mauve).reset_index()
+    combined = pd.concat([employee_921, UK_921, Mauve_2021]).drop(['index'],axis=1)
+    combined['Headcount']=pd.to_numeric(combined['Headcount'])
+    # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
+    # combined=combined.reset_index()
+    combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['Yr.','Per.','Headcount'], ascending=[True,True,False])
+    combined['Yr.']=combined['Yr.']+2000
+    combined=combined.rename(columns={'Yr.':'year', 'Per.':'month'})
+    combined['day']=1
+    combined['date']=pd.to_datetime(combined[['year','month','day']],infer_datetime_format=True)
+    return combined
+
+def pivot_headcount(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['year','Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Project').drop(['year'],axis=1)
+    return summary
+
+def final_headcount(data):
+    sch_921=data.query('`Account Code`=="921-0500"').loc[:,
+    ['Description','Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project']]
+    # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','Yr.','Per.','Project'])['Journal Amount'].sum().reset_index()
+    group_UK = sch_921.query('`Src. Account`=="BUK02"')
+    group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
+    sch_921_ee=data.query('`Account Code`=="921-0500"').loc[:,
+    ['Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project','Employee - Ext. Code']]
+    return combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
