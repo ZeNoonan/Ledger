@@ -43,10 +43,28 @@ NL_Data_16_20['Employee - Ext. Code']=NL_Data_16_20['EE']
 
 
 historical_data=final_headcount(NL_Data_16_20)
-# st.write(historical_data.head())
+st.write('historical data')
+st.write(historical_data.sort_values(by='date',ascending=True))
 
-headcount_filtered_16=final_headcount(NL_Data_16_20).groupby('date').head(2)
+headcount_filtered_16=historical_data.groupby('date').head(2)
 # pivot_headcount_summary_16=format_gp(pivot_headcount(final_headcount(NL_Data_16_20)))
 pivot_headcount_summary_16=(pivot_headcount(final_headcount(NL_Data_16_20)))
+st.write('top 2 by period')
 st.write(headcount_filtered_16)
-st.write(pivot_headcount_summary_16)
+st.write('pivot')
+
+st.write(format_gp(pivot_headcount_summary_16))
+# Why is there duplication in the index????? take out year and see it fixes it
+# # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
+# normalised_df_headcount = pivot_headcount_summary_16
+
+# drop all from row and columns for this as well
+shifted_df=pivot_headcount_summary_16
+st.write('checking df before drop')
+shifted_df=shifted_df.drop('All',axis=1)
+st.write('checking df after drop')
+shifted_df.columns = np.arange(len(shifted_df.columns))
+shifted_df=pivot_headcount_summary_16.replace(0,np.NaN)
+# st.write('checking',shifted_df)
+shifted_df = shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
+st.write(format_gp(shifted_df))
