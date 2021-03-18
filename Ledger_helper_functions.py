@@ -335,12 +335,13 @@ def combined_921_headcount(ee,UK,Mauve):
     combined=combined.rename(columns={'Yr.':'year', 'Per.':'month'})
     combined['day']=1
     combined['date']=pd.to_datetime(combined[['year','month','day']],infer_datetime_format=True)
+    # combined['date']=combined['date'].dt.to_period('m')
     return combined
 
 def pivot_headcount(x):
-    summary= pd.pivot_table(x, values='Headcount',index=['year','Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary= pd.pivot_table(x, values='Headcount',index=['Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
     summary = summary.sort_values(by=['All'],ascending=False)
-    summary=summary.reset_index().set_index('Project').drop(['year'],axis=1)
+    summary=summary.reset_index().set_index('Project')
     return summary
 
 def final_headcount(data):
@@ -353,3 +354,9 @@ def final_headcount(data):
     sch_921_ee=data.query('`Account Code`=="921-0500"').loc[:,
     ['Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project','Employee - Ext. Code']]
     return combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
+
+def create_pivot_comparing_production_headcount(shifted_df):
+    shifted_df=shifted_df.drop('All',axis=1).drop(['All'])
+    shifted_df.columns = np.arange(len(shifted_df.columns))
+    shifted_df=shifted_df.replace(0,np.NaN)
+    return shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
