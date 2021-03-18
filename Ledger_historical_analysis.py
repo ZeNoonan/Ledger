@@ -6,13 +6,15 @@ import streamlit as st
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
 long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,
-budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,final_headcount)
+budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,
+final_headcount,create_pivot_comparing_production_headcount)
 
 st.set_page_config(layout="wide")
 
 Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx'
+data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2016_20='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
 
 @st.cache
@@ -26,45 +28,26 @@ NL_Data = NL_Raw_Clean_File(NL, coding_acc_schedule)
 
 NL_16_20 = load_ledger_data(data_2016_20).copy()
 NL_Data_16_20 = NL_Raw_Clean_File(NL_16_20, coding_acc_schedule)
+NL_Data_16_20=NL_Data_16_20.join(NL_Data_16_20['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
+NL_Data_16_20['Employee - Ext. Code']=NL_Data_16_20['EE']
 
-headcount_filtered=final_headcount(NL_Data).groupby('date').head(2)
-pivot_headcount_summary=format_gp(pivot_headcount(final_headcount(NL_Data)))
+NL_20 = load_ledger_data(data_2020).copy()
+NL_Data_20 = NL_Raw_Clean_File(NL_20, coding_acc_schedule)
+
+@st.cache
+def df_concat():
+    return pd.concat([NL_Data_16_20,NL_Data_20,NL_Data],ignore_index=True)
+
+consol_headcount_data=df_concat().copy()
+headcount_filtered=final_headcount(consol_headcount_data).groupby('date').head(2)
+pivot_headcount_summary=format_gp(pivot_headcount(final_headcount(consol_headcount_data)))
+st.write('headcount filtered by top 2 in every month')
 st.write(headcount_filtered)
+st.write('pivot by month of headcount')
 st.write(pivot_headcount_summary)
+st.write('data to plot headcount numbers')
+st.write(format_gp(create_pivot_comparing_production_headcount(pivot_headcount(final_headcount(consol_headcount_data)))))
+# https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
+# # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
 
 st.write('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-NL_Data_16_20=NL_Data_16_20.join(NL_Data_16_20['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
-# https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
-NL_Data_16_20['Employee - Ext. Code']=NL_Data_16_20['EE']
-# st.write(NL_Data_16_20.query('`Account Code`=="921-0500"'))
-
-# st.write(NL_Data_16_20.query('`Account Code`=="921-0500"').loc[:,
-# ['Yr.','Per.','Description','Employee - Ext. Code','Employee','Journal Amount','Src. Account','Jrn. No.','Project']])
-
-
-historical_data=final_headcount(NL_Data_16_20)
-st.write('historical data')
-st.write(historical_data.sort_values(by='date',ascending=True))
-
-headcount_filtered_16=historical_data.groupby('date').head(2)
-# pivot_headcount_summary_16=format_gp(pivot_headcount(final_headcount(NL_Data_16_20)))
-pivot_headcount_summary_16=(pivot_headcount(final_headcount(NL_Data_16_20)))
-st.write('top 2 by period')
-st.write(headcount_filtered_16)
-st.write('pivot')
-
-st.write(format_gp(pivot_headcount_summary_16))
-# Why is there duplication in the index????? take out year and see it fixes it
-# # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
-# normalised_df_headcount = pivot_headcount_summary_16
-
-# drop all from row and columns for this as well
-shifted_df=pivot_headcount_summary_16
-st.write('checking df before drop')
-shifted_df=shifted_df.drop('All',axis=1)
-st.write('checking df after drop')
-shifted_df.columns = np.arange(len(shifted_df.columns))
-shifted_df=pivot_headcount_summary_16.replace(0,np.NaN)
-# st.write('checking',shifted_df)
-shifted_df = shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
-st.write(format_gp(shifted_df))
