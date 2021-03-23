@@ -297,6 +297,7 @@ def get_total_by_month(x):
     return x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month_','Per.':'Month'}).set_index('Month').transpose()
 
 def credit_notes_resolve(x):
+
     credit_notes=x['Jrn. No.'].str.contains('CN|CR')
     filter_credit_notes=x[credit_notes]
     filter_non_credit_notes=x[~credit_notes]
@@ -315,7 +316,7 @@ def company_ee_project(x):
     # x['Employee']=x['Employee'].str.replace(" ","")
     x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
     x= x.query('`Employee - Ext. Code`>0.5')
-    x['Payroll_Amt'] = x.groupby (['Yr.','Per.','Employee - Ext. Code'])['Journal Amount'].transform('sum')
+    x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
     x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
     return x
@@ -329,12 +330,13 @@ def combined_921_headcount(ee,UK,Mauve):
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
-    combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].sum().reset_index()
-    combined = combined.sort_values(by=['Yr.','Per.','Headcount'], ascending=[True,True,False])
-    combined['Yr.']=combined['Yr.']+2000
-    combined=combined.rename(columns={'Yr.':'year', 'Per.':'month'})
+    combined=combined.groupby(['calendar_year','calendar_month','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['calendar_year','calendar_month','Headcount'], ascending=[True,True,False])
+    combined['calendar_year']=combined['calendar_year']+2000
+    combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
     combined['day']=1
     combined['date']=pd.to_datetime(combined[['year','month','day']],infer_datetime_format=True)
+    # combined['date'] = pd.to_datetime(combined['date'], format='%Y-%m-%d')
     # combined['date']=combined['date'].dt.to_period('m')
     return combined
 
@@ -346,13 +348,13 @@ def pivot_headcount(x):
 
 def final_headcount(data):
     sch_921=data.query('`Account Code`=="921-0500"').loc[:,
-    ['Description','Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project']]
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project']]
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','Yr.','Per.','Project'])['Journal Amount'].sum().reset_index()
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('`Account Code`=="921-0500"').loc[:,
-    ['Journal Amount','Src. Account','Jrn. No.','Yr.','Per.','Project','Employee - Ext. Code']]
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code']]
     return combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
 
 def create_pivot_comparing_production_headcount(shifted_df):
@@ -360,3 +362,24 @@ def create_pivot_comparing_production_headcount(shifted_df):
     shifted_df.columns = np.arange(len(shifted_df.columns))
     shifted_df=shifted_df.replace(0,np.NaN)
     return shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
+
+@st.cache
+def load_ledger_data(data_2021):
+    return pd.read_excel(data_2021)
+
+def month_period_clean(x):
+    x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
+    x['calendar_year'] = np.where((x['Per.'] > 4.1), x['Yr.'], x['Yr.']-1)
+    return x
+
+def load_data(x,coding_acc_schedule):
+    NL = load_ledger_data(x)
+    stop_mutating_df = NL_Raw_Clean_File(NL, coding_acc_schedule)
+    return month_period_clean(stop_mutating_df)
+
+def load_16_19_clean(x,coding_acc_schedule):
+    NL = load_ledger_data(x)
+    NL_update = NL_Raw_Clean_File(NL, coding_acc_schedule)
+    NL_update=NL_update.join(NL_update['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
+    NL_update['Employee - Ext. Code']=NL_update['EE']
+    return month_period_clean(NL_update)
