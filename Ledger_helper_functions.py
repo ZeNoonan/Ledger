@@ -364,8 +364,8 @@ def create_pivot_comparing_production_headcount(shifted_df):
     return shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
 
 @st.cache
-def load_ledger_data(data_2021):
-    return pd.read_excel(data_2021)
+def load_ledger_data(x):
+    return pd.read_excel(x)
 
 def month_period_clean(x):
     x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
@@ -383,3 +383,25 @@ def load_16_19_clean(x,coding_acc_schedule):
     NL_update=NL_update.join(NL_update['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
     NL_update['Employee - Ext. Code']=NL_update['EE']
     return month_period_clean(NL_update)
+
+def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    # x=load_ledger_data(forecast_resourcing_file).copy()
+    # forecast_project_mapping=pd.
+    x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project'})
+    x.columns= x.columns.astype(str)
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    sliced_x=sliced_x.set_index('Project').unstack(level='Project').reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    sliced_x=sliced_x.groupby(['Project','date'])['headcount'].sum().reset_index()    
+    x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
+    return x
+
+@st.cache
+def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
+    return pd.concat([NL_Data_16_19,NL_Data_20,NL_Data_21],ignore_index=True)
+
+def headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct):
+    actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
+    merged=pd.concat([actual,forecast_headcount_direct],axis=1)
+    merged.loc['All']= merged.sum(numeric_only=True, axis=0)
+    merged.loc[:,'All'] = merged.sum(numeric_only=True, axis=1)
+    return merged.sort_values(by='All',ascending=False)
