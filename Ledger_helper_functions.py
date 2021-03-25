@@ -401,7 +401,12 @@ def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
 
 def headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
-    merged=pd.concat([actual,forecast_headcount_direct],axis=1)
+    return pd.concat([actual,forecast_headcount_direct],axis=1)
+
+def headcount_actual_plus_forecast_with_subtotal(merged):
     merged.loc['All']= merged.sum(numeric_only=True, axis=0)
     merged.loc[:,'All'] = merged.sum(numeric_only=True, axis=1)
     return merged.sort_values(by='All',ascending=False)
+
+def data_for_graphing(x):
+    return x.unstack(level='Project').reset_index().rename(columns={0:'headcount'})
