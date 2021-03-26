@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-@st.cache
+# @st.cache
 def Budget_Raw_Clean_File(Budget_Raw_Clean,coding_acc_schedule, Project_codes):
     Budget_Raw_Clean['Acc_Schedule']=Budget_Raw_Clean['ACCOUNT'].str[-8:-5]
     Budget_Raw_Clean['Acc_Schedule']=pd.to_numeric(Budget_Raw_Clean['Acc_Schedule'])
@@ -18,8 +18,9 @@ def Budget_Raw_Clean_File(Budget_Raw_Clean,coding_acc_schedule, Project_codes):
     Budget_Raw_Clean = pd.merge(Budget_Raw_Clean, Project_codes, on=['SUBANALYSIS 0'], how='outer').rename(columns = {'Description' : 'Project_Name'})
     return Budget_Raw_Clean
 
-@st.cache
+# @st.cache
 def NL_Raw_Clean_File(NL_Raw_Clean, coding_acc_schedule):
+    # st.write(NL_Raw_Clean.head())
     NL_Raw_Clean['Acc_Schedule']=NL_Raw_Clean['Account Code'].str[:3]
     NL_Raw_Clean['Acc_Schedule']=pd.to_numeric(NL_Raw_Clean['Acc_Schedule'])
     NL_Raw_Clean['Project_Code'] = NL_Raw_Clean['Project'].str[:8]
@@ -29,6 +30,14 @@ def NL_Raw_Clean_File(NL_Raw_Clean, coding_acc_schedule):
     NL_Raw_Clean = NL_Raw_Clean.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     NL_Raw_Clean['Department'] = NL_Raw_Clean['Department'].replace( {'T0000':"TV",'CG000':"CG",
     'P0000':"Post",'A0000':"Admin",'D0000':"Development",'I0000':"IT",'R0000':"Pipeline"})
+
+    NL_Raw_Clean['calendar_month']=NL_Raw_Clean['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
+    NL_Raw_Clean['calendar_year'] = np.where((NL_Raw_Clean['Per.'] > 4.1), NL_Raw_Clean['Yr.'], NL_Raw_Clean['Yr.']-1)
+    NL_Raw_Clean['calendar_year']=NL_Raw_Clean['calendar_year']+2000
+    NL_Raw_Clean=NL_Raw_Clean.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    NL_Raw_Clean['day']=1
+    NL_Raw_Clean['date']=pd.to_datetime(NL_Raw_Clean[['year','month','day']],infer_datetime_format=True)
+
     return NL_Raw_Clean
 
 @st.cache
@@ -182,7 +191,7 @@ def dfs_merge(*args):
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return f
 
-# @st.cache
+@st.cache
 def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,Department=None,**kwargs):
     """
     Basically produces a table showing the monthly revenue or cost of sales by Project
@@ -195,7 +204,7 @@ def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,Departmen
     return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
 
 
-# @st.cache
+@st.cache
 def gp_by_project(data, coding_acc_schedule,Department=None):
     revenue_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Revenue',Department=Department, Month_Amount = 'NL_Month')
     cos_by_project = group_by_monthly_by_production(data,coding_acc_schedule,'Cost of Sales',Department=Department, Month_Amount = 'NL_Month')
@@ -210,14 +219,14 @@ def gp_by_project(data, coding_acc_schedule,Department=None):
 
 
 
-# @st.cache
+@st.cache
 def gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue',Department=None):
     df_gp = group_by_monthly_by_production(data,coding_acc_schedule,Schedule_Name,Department, Month_Amount = 'NL_Month')
     df_gp = pd.DataFrame (df_gp.to_records()).set_index('Project_Name')
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     return df_gp
 
-# @st.cache
+@st.cache
 def budget_forecast_gp(data, coding_acc_schedule,NL_melt):
     budget = gp_by_project(data, coding_acc_schedule)
     long_budget = long_format_budget(budget, NL_melt)
@@ -267,13 +276,13 @@ def color_negative_red(val):
     color = 'red' if val < 0 else 'black'
     return 'color: %s' % color
 
-@st.cache
+# @st.cache
 def long_format_nl(df_gp):
     df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
     df_gp['Per.'] = pd.to_numeric(df_gp['Per.'])
     return df_gp
 
-@st.cache
+# @st.cache
 def gp_nl_budget_comp(nl,budget):
     x = pd.merge(nl, budget, on=['Project_Name','Per.'], how='outer')
     x =x.fillna(value=0)
@@ -372,17 +381,19 @@ def month_period_clean(x):
     x['calendar_year'] = np.where((x['Per.'] > 4.1), x['Yr.'], x['Yr.']-1)
     return x
 
+# @st.cache
 def load_data(x,coding_acc_schedule):
-    NL = load_ledger_data(x)
-    stop_mutating_df = NL_Raw_Clean_File(NL, coding_acc_schedule)
+    # NL = load_ledger_data(x)
+    stop_mutating_df = NL_Raw_Clean_File(x, coding_acc_schedule).copy()
     return month_period_clean(stop_mutating_df)
 
+# @st.cache
 def load_16_19_clean(x,coding_acc_schedule):
-    NL = load_ledger_data(x)
-    NL_update = NL_Raw_Clean_File(NL, coding_acc_schedule)
-    NL_update=NL_update.join(NL_update['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
-    NL_update['Employee - Ext. Code']=NL_update['EE']
-    return month_period_clean(NL_update)
+    # NL = load_ledger_data(x)
+    NL_update = NL_Raw_Clean_File(x, coding_acc_schedule).copy()
+    NL_update_1=NL_update.join(NL_update['Employee'].str.split(' ', expand=True).rename(columns={0:'EE',1:'Name_EE'}))
+    NL_update_1['Employee - Ext. Code']=NL_update_1['EE']
+    return month_period_clean(NL_update_1)
 
 def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
     # x=load_ledger_data(forecast_resourcing_file).copy()
@@ -395,7 +406,7 @@ def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_perio
     x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
     return x
 
-@st.cache
+# @st.cache
 def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
     return pd.concat([NL_Data_16_19,NL_Data_20,NL_Data_21],ignore_index=True)
 
