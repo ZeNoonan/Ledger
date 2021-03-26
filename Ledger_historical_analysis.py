@@ -9,7 +9,7 @@ pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, e
 long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
-headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing
+headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production
 )
 
 st.set_page_config(layout="wide")
@@ -28,15 +28,13 @@ coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Dat
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
 Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
-# cached_2021=load_ledger_data(data_2021).copy()
-# cached_2021=load_ledger_data(data_2021).copy()
-# cached_2021=load_ledger_data(data_2021).copy()
-# cached_2021=load_ledger_data(data_2021).copy()
+cached_2021=load_ledger_data(data_2021).copy()
+cached_2020=load_ledger_data(data_2020).copy()
+cached_2016_19=load_ledger_data(data_2016_19).copy()
 
-NL_Data_21=load_data(data_2021,coding_acc_schedule) # MUTATION
-NL_Data_20=load_data(data_2020,coding_acc_schedule) # MUTATION
-NL_Data_16_19=load_16_19_clean(data_2016_19,coding_acc_schedule) # MUTATION
-
+NL_Data_21=load_data(cached_2021,coding_acc_schedule) # MUTATION
+NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
+NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
 
 consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
 
@@ -66,3 +64,12 @@ with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Mont
 with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month end to compare productions'):
     st.write('will need to think about graphing only the top 25 projects or something like that, will see when I do the graphs')
     st.write(data_for_graphing(full_headcount_actual_forecast_no_subtotal))
+
+with st.beta_expander('Historical GP Analysis'):
+    # st.write('will need to think about graphing only the top 25 projects or something like that, will see when I do the graphs')
+    NL_Revenue = gp_by_project_sales_cos(NL_Data_21, coding_acc_schedule,Schedule_Name='Revenue', Department=None)
+    st.write(NL_Revenue)
+    Revenue_alt = group_by_monthly_by_production(NL_Data_21,coding_acc_schedule,Schedule_Name='Revenue',Department=None)
+    st.write(Revenue_alt)
+    st.write('I update NL Raw Clean File to put in date column check that all files are running ok after the change')
+
