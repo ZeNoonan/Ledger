@@ -191,17 +191,6 @@ def dfs_merge(*args):
     # st.write( c.loc[c['Acc_Schedule'].isnull()] )
     return f
 
-@st.cache
-def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,Department=None,**kwargs):
-    """
-    Basically produces a table showing the monthly revenue or cost of sales by Project
-    But you can pick to use revenue or cost of sales or anything else as that is an argument in the function called Schedule_Name e.g. Revenue
-    """
-    x = x.merge (coding_acc_schedule, on=['Acc_Number','Name','Sorting'],how='outer')
-    x = x[x['Name']==Schedule_Name]
-    if Department !=None:
-        x = x[x['Department']==Department]
-    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
 
 
 @st.cache
@@ -216,6 +205,24 @@ def gp_by_project(data, coding_acc_schedule,Department=None):
     df_gp.columns = [x.replace("('Month_Amount', ", "").replace(")", "") for x in df_gp.columns] 
     # https://stackoverflow.com/questions/42708193/pandas-pivot-table-to-data-frame
     return df_gp
+
+@st.cache
+def group_by_monthly_by_production(x,coding_acc_schedule,Schedule_Name,Department=None,**kwargs):
+    """
+    Basically produces a table showing the monthly revenue or cost of sales by Project
+    But you can pick to use revenue or cost of sales or anything else as that is an argument in the function called Schedule_Name e.g. Revenue
+    """
+    x = x.merge (coding_acc_schedule, on=['Acc_Number','Name','Sorting'],how='outer')
+    x = x[x['Name']==Schedule_Name]
+    if Department !=None:
+        x = x[x['Department']==Department]
+    y = x.groupby(['Project_Name','Per.'])['Journal Amount'].sum()
+    grouped_pivot = x.groupby(['Project_Name','Per.'])['Journal Amount'].sum().unstack()
+    return x.groupby(['Project_Name','Per.']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+    # return y.reset_index()
+    # return grouped_pivot.reset_index().set_index('Project').unstack(level='Project')    
+    # return x.groupby(['Project_Name','date']).agg ( Month_Amount = ('Journal Amount','sum')).unstack()
+
 
 
 
@@ -406,6 +413,8 @@ def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_perio
     x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
     return x
 
+
+
 # @st.cache
 def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
     return pd.concat([NL_Data_16_19,NL_Data_20,NL_Data_21],ignore_index=True)
@@ -421,3 +430,14 @@ def headcount_actual_plus_forecast_with_subtotal(merged):
 
 def data_for_graphing(x):
     return x.unstack(level='Project').reset_index().rename(columns={0:'headcount'})
+
+def acc_schedule_find(x, Schedule_Name):
+    x = x[x['Name']==Schedule_Name]
+    # return x.groupby(['Project_Name','Yr.'])['Journal Amount'].sum()
+    return x.groupby(['Project_Name'])['Journal Amount'].sum()
+
+def test_gp_by_project(data):
+    revenue_by_project = acc_schedule_find(data,'Revenue')
+    cos_by_project = acc_schedule_find(data,'Cost of Sales')
+    gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    return gp_by_project
