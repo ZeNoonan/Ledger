@@ -9,7 +9,8 @@ pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, e
 long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
-headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production
+headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
+test_gp_by_project,
 )
 
 st.set_page_config(layout="wide")
@@ -72,4 +73,13 @@ with st.beta_expander('Historical GP Analysis'):
     Revenue_alt = group_by_monthly_by_production(NL_Data_21,coding_acc_schedule,Schedule_Name='Revenue',Department=None)
     st.write(Revenue_alt)
     st.write('I update NL Raw Clean File to put in date column check that all files are running ok after the change')
+    test_revenue=acc_schedule_find(NL_Data_21, 'Revenue')
+    st.write(test_revenue)
+    st.write('sum of revenue')
+    st.write(test_revenue.sum())
+
+    st.write('this should be GP below next to get GP next to get overall GP %')
+    gp_year =test_gp_by_project(NL_Data_21)
+    st.write(gp_year)
+    st.write(gp_year.sum())
 
