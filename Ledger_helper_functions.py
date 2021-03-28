@@ -441,3 +441,10 @@ def test_gp_by_project(data):
     cos_by_project = acc_schedule_find(data,'Cost of Sales')
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
     return gp_by_project
+
+def gp_percent_by_project(production_gross_profit,production_revenue):
+    # gp_percent=production_gross_profit['Gross_Profit'] / production_revenue['Revenue']
+    gp_percent= production_gross_profit.divide(production_revenue,fill_value=0) # Can I get divdie to recognise the different columsn
+    gp_percent=gp_percent.replace([np.inf, -np.inf], np.nan).fillna(0)
+    return gp_percent
+   
