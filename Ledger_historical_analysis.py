@@ -10,7 +10,7 @@ long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
-test_gp_by_project,gp_percent_by_project,
+test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,
 )
 
 st.set_page_config(layout="wide")
@@ -67,31 +67,13 @@ with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Mont
     st.write(data_for_graphing(full_headcount_actual_forecast_no_subtotal))
 
 with st.beta_expander('Historical GP Analysis'):
-    # st.write('will need to think about graphing only the top 25 projects or something like that, will see when I do the graphs')
-    NL_Revenue = gp_by_project_sales_cos(NL_Data_21, coding_acc_schedule,Schedule_Name='Revenue', Department=None)
-    st.write(NL_Revenue)
-    Revenue_alt = group_by_monthly_by_production(NL_Data_21,coding_acc_schedule,Schedule_Name='Revenue',Department=None)
-    st.write(Revenue_alt)
-    production_revenue=(acc_schedule_find(NL_Data_21, 'Revenue'))
-    # production_revenue=(acc_schedule_find(NL_Data_21, 'Revenue')).reset_index().rename(columns={'Journal Amount':'Revenue'})
-    # st.write(test_revenue.rename(columns={'Journal Amount':'Test'}))
-
-    st.write(production_revenue)
-    st.write('sum of revenue')
-    st.write(production_revenue.sum())
-
-    st.write('this should be GP below next to get GP next to get overall GP %')
-    production_gross_profit =test_gp_by_project(NL_Data_21)
-    # production_gross_profit =test_gp_by_project(NL_Data_21).reset_index().rename(columns={'Journal Amount':'Gross_Profit'})
-    st.write(production_gross_profit)
-    st.write(production_gross_profit.sum())
-
-    st.write('this is GP %')
+    # NL_Revenue = gp_by_project_sales_cos(NL_Data_21, coding_acc_schedule,Schedule_Name='Revenue', Department=None)
+    # Revenue_alt = group_by_monthly_by_production(NL_Data_21,coding_acc_schedule,Schedule_Name='Revenue',Department=None)
+    st.write('Historical GP Table')
+    data_2016_current=consol_headcount_data
+    production_revenue=(acc_schedule_find(data_2016_current, 'Revenue'))
+    production_gross_profit =test_gp_by_project(data_2016_current)
     production_gp_percent=gp_percent_by_project(production_gross_profit,production_revenue)
-    st.write(production_gp_percent)
-
-    st.write('trying to add them all togheter, fix this and add other columsn in by renaming them above have commented')
-    st.write(pd.concat([production_revenue,production_gross_profit,production_gp_percent]))
-    
-
+    revenue_gp_gp_percent_table = gp_revenue_concat(production_gross_profit, production_revenue,production_gp_percent)
+    st.write(format_table(revenue_gp_gp_percent_table))
 
