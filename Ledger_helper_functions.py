@@ -447,4 +447,15 @@ def gp_percent_by_project(production_gross_profit,production_revenue):
     gp_percent= production_gross_profit.divide(production_revenue,fill_value=0) # Can I get divdie to recognise the different columsn
     gp_percent=gp_percent.replace([np.inf, -np.inf], np.nan).fillna(0)
     return gp_percent
+
+def gp_revenue_concat(production_gross_profit, production_revenue, production_gp_percent):
+    production_gross_profit=production_gross_profit.reset_index().rename(columns={'Journal Amount':'Gross_Profit'}).set_index('Project_Name')
+    production_revenue=production_revenue.reset_index().rename(columns={'Journal Amount':'Revenue'}).set_index('Project_Name')
+    production_gp_percent=production_gp_percent.reset_index().rename(columns={'Journal Amount':'GP %'}).set_index('Project_Name')
+    table= pd.concat([production_revenue, production_gross_profit, production_gp_percent],axis=1)
+    return table.sort_values(by='Revenue',ascending=False)
+
+def format_table(x):
+    return x.style.format({'GP %': "{:.2%}", 'Revenue': '{:.0f}'})
+
    
