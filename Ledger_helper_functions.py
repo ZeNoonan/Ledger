@@ -362,14 +362,14 @@ def pivot_headcount(x):
     summary=summary.reset_index().set_index('Project')
     return summary
 
-def final_headcount(data):
-    sch_921=data.query('`Account Code`=="921-0500"').loc[:,
+def final_headcount(data, account_code):
+    sch_921=data.query('`Account Code`==@account_code').loc[:,
     ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project']]
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
     group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
-    sch_921_ee=data.query('`Account Code`=="921-0500"').loc[:,
+    sch_921_ee=data.query('`Account Code`==@account_code').loc[:,
     ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code']]
     return combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
 
@@ -444,7 +444,7 @@ def test_gp_by_project(data):
 
 def gp_percent_by_project(production_gross_profit,production_revenue):
     # gp_percent=production_gross_profit['Gross_Profit'] / production_revenue['Revenue']
-    gp_percent= production_gross_profit.divide(production_revenue,fill_value=0) # Can I get divdie to recognise the different columsn
+    gp_percent= production_gross_profit.divide(production_revenue,fill_value=0)*100 # Can I get divdie to recognise the different columsn
     gp_percent=gp_percent.replace([np.inf, -np.inf], np.nan).fillna(0)
     return gp_percent
 
@@ -456,6 +456,45 @@ def gp_revenue_concat(production_gross_profit, production_revenue, production_gp
     return table.sort_values(by='Revenue',ascending=False)
 
 def format_table(x):
-    return x.style.format({'GP %': "{:.2%}", 'Revenue': '{:.0f}'})
+    return x.style.format({'GP %': "{:,.0f}%", 'Revenue': '{:,.0f}', 'Gross_Profit': '{:,.0f}'})
 
-   
+def headcount_921_940(data):
+    sch_921=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule']]
+    # st.write('data',data.head())
+    # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule'])['Journal Amount'].sum().reset_index()
+    group_UK = sch_921.query('`Src. Account`=="BUK02"')
+    group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
+    sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule']]
+    return headcount_function(sch_921_ee,group_UK,group_no_UK)   
+
+def format_dataframe(x):
+    # return x.style.format("{:,.0f}",na_rep="-")
+    return x.style.format("{:,.2f}",na_rep="-")
+    # .format(background_gradient(cmap='Blues'))
+
+def headcount_function(ee,UK,Mauve):
+    employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
+    UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
+    Mauve_2021=credit_notes_resolve(Mauve).reset_index()
+    combined = pd.concat([employee_921, UK_921, Mauve_2021]).drop(['index'],axis=1)
+    combined['Headcount']=pd.to_numeric(combined['Headcount'])
+    # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
+    # combined=combined.reset_index()
+    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Headcount'], ascending=[True,True,True,False])
+    combined['calendar_year']=combined['calendar_year']+2000
+    combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    combined['day']=1
+    combined['date']=pd.to_datetime(combined[['year','month','day']],infer_datetime_format=True)
+    # combined['date'] = pd.to_datetime(combined['date'], format='%Y-%m-%d')
+    # combined['date']=combined['date'].dt.to_period('m')
+    return combined
+
+# def pivot_headcount(x):
+#     summary= pd.pivot_table(x, values='Headcount',index=['Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+#     summary = summary.sort_values(by=['All'],ascending=False)
+#     summary=summary.reset_index().set_index('Project')
+#     return summary
