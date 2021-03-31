@@ -14,7 +14,7 @@ def Budget_Raw_Clean_File(Budget_Raw_Clean,coding_acc_schedule, Project_codes):
     Budget_Raw_Clean['Per.'] = pd.to_numeric(Budget_Raw_Clean['Per.'])
     Budget_Raw_Clean = Budget_Raw_Clean.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     Budget_Raw_Clean['Department'] =Budget_Raw_Clean['Department'].replace( {'T0000':"TV",'CG000':"CG",
-    'P0000':"Post",'A0000':"Admin",'D0000':"Development",'I0000':"IT",'R0000':"Pipeline"})
+    'P0000':"Post",'A0000':"Admin",'D0000':"Development",'I0000':"IT",'R0000':"Pipeline",'HR000':"HR"})
     Budget_Raw_Clean = pd.merge(Budget_Raw_Clean, Project_codes, on=['SUBANALYSIS 0'], how='outer').rename(columns = {'Description' : 'Project_Name'})
     return Budget_Raw_Clean
 
@@ -29,7 +29,7 @@ def NL_Raw_Clean_File(NL_Raw_Clean, coding_acc_schedule):
     NL_Raw_Clean['Journal Amount'] = NL_Raw_Clean['Journal Amount'] * -1
     NL_Raw_Clean = NL_Raw_Clean.merge (coding_acc_schedule, on='Acc_Number',how='outer')
     NL_Raw_Clean['Department'] = NL_Raw_Clean['Department'].replace( {'T0000':"TV",'CG000':"CG",
-    'P0000':"Post",'A0000':"Admin",'D0000':"Development",'I0000':"IT",'R0000':"Pipeline"})
+    'P0000':"Post",'A0000':"Admin",'D0000':"Development",'I0000':"IT",'R0000':"Pipeline",'HR000':"HR"})
 
     NL_Raw_Clean['calendar_month']=NL_Raw_Clean['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
     NL_Raw_Clean['calendar_year'] = np.where((NL_Raw_Clean['Per.'] > 4.1), NL_Raw_Clean['Yr.'], NL_Raw_Clean['Yr.']-1)
@@ -460,14 +460,14 @@ def format_table(x):
 
 def headcount_921_940(data):
     sch_921=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule']]
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Department']]
     # st.write('data',data.head())
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule'])['Journal Amount'].sum().reset_index()
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Department'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule']]
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Department']]
     return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
 def format_dataframe(x):
@@ -483,8 +483,8 @@ def headcount_function(ee,UK,Mauve):
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
-    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Project'])['Headcount'].sum().reset_index()
-    combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Headcount'], ascending=[True,True,True,False])
+    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Department','Headcount'], ascending=[True,True,True,True,False])
     combined['calendar_year']=combined['calendar_year']+2000
     combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
     combined['day']=1
@@ -493,8 +493,8 @@ def headcount_function(ee,UK,Mauve):
     # combined['date']=combined['date'].dt.to_period('m')
     return combined
 
-# def pivot_headcount(x):
-#     summary= pd.pivot_table(x, values='Headcount',index=['Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
-#     summary = summary.sort_values(by=['All'],ascending=False)
-#     summary=summary.reset_index().set_index('Project')
-#     return summary
+def pivot_headcount_dept(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['Department'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Department')
+    return summary
