@@ -10,7 +10,7 @@ long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount,
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
-test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,
+test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,
 )
 
 st.set_page_config(layout="wide")
@@ -68,17 +68,25 @@ with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Mont
 
 with st.beta_expander('Overhead Headcount'):
     st.write('overhead headcount')
-    overhead_headcount=pivot_headcount(final_headcount(consol_headcount_data,'940-0500'))
-    st.write(format_gp(overhead_headcount))
-    new_headcount=pivot_headcount(headcount_921_940(consol_headcount_data))
+    # st.write('consol headcount data', consol_headcount_data.head())
+    # overhead_headcount=pivot_headcount(final_headcount(consol_headcount_data,'940-0500'))
+    # st.write(format_gp(overhead_headcount))
+    new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
     prelim_data=headcount_921_940(consol_headcount_data)
-    st.write('new 921 and 940')
+    st.write('new 921 and 940 total')
     st.write(format_dataframe(new_headcount))
-    st.write('need to seperate out amounts between 921 and 940')
-    st.write(prelim_data.head())
-    data_headcount_921=prelim_data.query('`Account Code`=="921-0500"')
-    data_headcount_940=prelim_data.query('`Account Code`=="940-0500"')
-    st.write(pivot_headcount(data_headcount_921))
+    # st.write('need to seperate out amounts between 921 and 940')
+    # st.write(prelim_data.head())
+    data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
+    data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
+    # st.write(data_headcount_921.head())
+    st.write('this is updated headcount for 921 and 940 broken down by Project')
+    st.write(format_dataframe(pivot_headcount(data_headcount_921)))
+    st.write(format_dataframe(pivot_headcount(data_headcount_940)))
+    st.write('this is updated headcount for 921 and 940 broken down by Department')
+    st.write(format_dataframe(pivot_headcount_dept(data_headcount_921)))
+    st.write(format_dataframe(pivot_headcount_dept(data_headcount_940)))
+
 
 with st.beta_expander('Historical GP Analysis'):
     # NL_Revenue = gp_by_project_sales_cos(NL_Data_21, coding_acc_schedule,Schedule_Name='Revenue', Department=None)
