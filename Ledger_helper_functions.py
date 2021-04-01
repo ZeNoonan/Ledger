@@ -346,7 +346,7 @@ def combined_921_headcount(ee,UK,Mauve):
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
-    combined=combined.groupby(['calendar_year','calendar_month','Project'])['Headcount'].sum().reset_index()
+    combined=combined.groupby(['calendar_year','calendar_month','Project','Project_Name'])['Headcount'].sum().reset_index()
     combined = combined.sort_values(by=['calendar_year','calendar_month','Headcount'], ascending=[True,True,False])
     combined['calendar_year']=combined['calendar_year']+2000
     combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
@@ -364,13 +364,13 @@ def pivot_headcount(x):
 
 def final_headcount(data, account_code):
     sch_921=data.query('`Account Code`==@account_code').loc[:,
-    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project']]
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project_Name','Project']]
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project'])['Journal Amount'].sum().reset_index()
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Project_Name'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('`Account Code`==@account_code').loc[:,
-    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code']]
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Project_Name']]
     return combined_921_headcount(sch_921_ee,group_UK,group_no_UK)
 
 def create_pivot_comparing_production_headcount(shifted_df):
@@ -460,14 +460,14 @@ def format_table(x):
 
 def headcount_921_940(data):
     sch_921=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Department']]
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department']]
     # st.write('data',data.head())
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Department'])['Journal Amount'].sum().reset_index()
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Department']]
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department']]
     return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
 def format_dataframe(x):
@@ -483,8 +483,8 @@ def headcount_function(ee,UK,Mauve):
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
-    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project'])['Headcount'].sum().reset_index()
-    combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Department','Headcount'], ascending=[True,True,True,True,False])
+    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Project'])['Headcount'].sum().reset_index()
+    combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Headcount'], ascending=[True,True,True,True,True,False])
     combined['calendar_year']=combined['calendar_year']+2000
     combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
     combined['day']=1
@@ -498,3 +498,39 @@ def pivot_headcount_dept(x):
     summary = summary.sort_values(by=['All'],ascending=False)
     summary=summary.reset_index().set_index('Department')
     return summary
+
+def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
+    x.columns= x.columns.astype(str)
+    # st.write(x)
+    col = x.pop("Department")
+    last_position=47
+    x=x.insert(last_position, col.name, col)
+    st.write('after insert function')
+    st.write(x)
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    yy=sliced_x.copy()
+    st.write(yy.head())
+    sliced_x=sliced_x.set_index('Department').unstack(level='Department').reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    sliced_x=sliced_x.groupby(['Department','date'])['headcount'].sum().reset_index()    
+    x = pd.pivot_table(sliced_x, values='headcount',index=['Department'], columns=['date'],fill_value=0)
+    return x
+
+def test_forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    x= pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
+    x.columns= x.columns.astype(str)
+    # st.write('x before pop')
+    # st.write(x.head())
+    col = x.pop("Department")
+    x.insert(x.columns.get_loc('Project') + 1, col.name, col)
+    st.write('this works cos i checked it',x.head())
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    st.write(sliced_x)
+    st.write('sliced df looks like it works')
+
+    st.write('does this work')
+    sliced_x=sliced_x.set_index('Department').unstack(level='Department').reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    # sliced_x=sliced_x.groupby(['Department','date'])['headcount'].sum().reset_index()    
+    # x = pd.pivot_table(sliced_x, values='headcount',index=['Department'], columns=['date'],fill_value=0)
+
+    return sliced_x
