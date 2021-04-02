@@ -518,19 +518,22 @@ def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_re
 
 def test_forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
     x= pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
+    # st.write('full data for forecast is dept missing', x.head())
+    # st.write(x[x['Department'].isnull()]) # ALWAYS CHECK FOR NAN VALUES
+    x['Department'] = x['Department'].replace({np.nan:'CG'})
+    # st.write(x[x['Department'].isnull()])
     x.columns= x.columns.astype(str)
-    # st.write('x before pop')
-    # st.write(x.head())
     col = x.pop("Department")
     x.insert(x.columns.get_loc('Project') + 1, col.name, col)
-    st.write('this works cos i checked it',x.head())
     sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
-    st.write(sliced_x)
-    st.write('sliced df looks like it works')
-
-    st.write('does this work')
+    sliced_x = sliced_x.drop(columns=['Project'])
     sliced_x=sliced_x.set_index('Department').unstack(level='Department').reset_index().rename(columns={'level_0':'date',0:'headcount'})
-    # sliced_x=sliced_x.groupby(['Department','date'])['headcount'].sum().reset_index()    
-    # x = pd.pivot_table(sliced_x, values='headcount',index=['Department'], columns=['date'],fill_value=0)
+    sliced_x=sliced_x.groupby(['Department','date'])['headcount'].sum().reset_index()    
+    x = pd.pivot_table(sliced_x, values='headcount',index=['Department'], columns=['date'],fill_value=0)
+    return x
 
-    return sliced_x
+def new_headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct):
+    actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
+    # forecast=forecast_headcount_direct.drop('All',axis=1).drop(['All'])
+    merged_values = pd.concat([actual,forecast_headcount_direct],axis=1).ffill(axis=1)
+    return merged_values
