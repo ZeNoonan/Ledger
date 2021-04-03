@@ -11,7 +11,7 @@ budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_9
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
-test_forecast_resourcing_dept,new_headcount_actual_plus_forecast,
+test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,
 )
 
 st.set_page_config(layout="wide")
@@ -74,19 +74,19 @@ with st.beta_expander('Overhead Headcount'):
     # st.write(format_gp(overhead_headcount))
     new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
     prelim_data=headcount_921_940(consol_headcount_data)
-    st.write('new 921 and 940 total')
-    st.write(format_dataframe(new_headcount))
+    # st.write('new 921 and 940 total')
+    # st.write(format_dataframe(new_headcount))
     # st.write('need to seperate out amounts between 921 and 940')
     # st.write(prelim_data.head())
     data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
     data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
     # st.write(data_headcount_921.head())
-    st.write('this is updated headcount for 921 and 940 broken down by Project')
-    st.write(format_dataframe(pivot_headcount(data_headcount_921)))
+    # st.write('this is updated headcount for 940 broken down by Project')
+    # st.write(format_dataframe(pivot_headcount(data_headcount_921)))
     st.write(format_dataframe(pivot_headcount(data_headcount_940)))
     st.write('this is updated headcount for 921 and 940 broken down by Department')
-    st.write(format_dataframe(pivot_headcount_dept(data_headcount_921)))
-    st.write(format_dataframe(pivot_headcount_dept(data_headcount_940)))
+    # st.write(format_dataframe(pivot_headcount_dept(data_headcount_921)))
+    # st.write(format_dataframe(pivot_headcount_dept(data_headcount_940)))
 
 
 with st.beta_expander('Historical GP Analysis'):
@@ -109,17 +109,20 @@ with st.beta_expander('Overall Headcount to date broken down by Department'):
 with st.beta_expander('Overall Headcount to date broken down by Project'):
     st.write(format_dataframe(pivot_headcount(data_graphing_actual_to_date)))
 
-with st.beta_expander('Try and work with the forecast data'):
+with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
-    # st.write('is there an All subtotal in this dont think there should be', forecast_pivot)
-    # with_subtotal=headcount_actual_plus_forecast_with_subtotal(forecast_pivot)
-    # st.write(format_dataframe(with_subtotal))
+    updated=new_headcount_actual_plus_forecast(actual_pivot,forecast_pivot).ffill(axis=1)
+    st.write(format_dataframe(headcount_actual_plus_forecast_with_subtotal(updated)))
+    st.write('Data friendly version for graphing below')
+    data_graph=data_for_graphing_dept(updated)
+    st.write(data_graph)
+    st.write('check sum should match total of above', data_graph['headcount'].sum())
 
-    # merging actual plus forecast
-    # st.write('actual pivot check for all',actual_pivot.head())
-    # st.write('forecast pivot check for all',forecast_pivot.head())
-    test_merge=new_headcount_actual_plus_forecast(actual_pivot,forecast_pivot).ffill(axis=1)
-    # st.write('test concat', test_merge)
-    st.write(format_dataframe(headcount_actual_plus_forecast_with_subtotal(test_merge)))
-
-
+with st.beta_expander('921 Headcount by Project - actual + forecast'):
+    pivot_921_actual=pivot_headcount(data_headcount_921)
+    # st.write('forecast pivot', forecast_headcount_direct)
+    concat_df = headcount_concat(pivot_921_actual,forecast_headcount_direct)
+    # st.write('below has no subtotal')
+    # st.write(format_dataframe(concat_df))
+    # st.write('below has subtotal')
+    st.write(format_dataframe(headcount_actual_plus_forecast_with_subtotal(concat_df)))
