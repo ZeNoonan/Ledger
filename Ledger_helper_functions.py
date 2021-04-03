@@ -537,3 +537,12 @@ def new_headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcoun
     # forecast=forecast_headcount_direct.drop('All',axis=1).drop(['All'])
     merged_values = pd.concat([actual,forecast_headcount_direct],axis=1).ffill(axis=1)
     return merged_values
+
+def data_for_graphing_dept(x):
+    return x.unstack(level='Department').reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
+    .reset_index().set_index('Department').drop(['All']).reset_index()
+
+def headcount_concat(actual_headcount_direct,forecast_headcount_direct):
+    actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
+    forecast = forecast_headcount_direct.drop('All',axis=1).drop(['All'])
+    return pd.concat([actual,forecast],axis=1)
