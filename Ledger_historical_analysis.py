@@ -40,54 +40,89 @@ NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
 
 consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
 
-with st.beta_expander('Click to see Actual Direct Headcount from 2015 to Current Date broken down by production'):
-    actual_headcount_direct=(pivot_headcount(final_headcount(consol_headcount_data,'921-0500')))
-    st.write('pivot by month of headcount')
-    st.write(format_gp(actual_headcount_direct))
+# with st.beta_expander('Click to see Actual Direct Headcount from 2015 to Current Date broken down by production'):
+#     actual_headcount_direct=(pivot_headcount(final_headcount(consol_headcount_data,'921-0500')))
+#     st.write('pivot by month of headcount')
+#     st.write(format_gp(actual_headcount_direct))
 
-# https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
-# https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
+# # https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
+# # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
 
-with st.beta_expander('Click to see Forecast Direct Headcount from Current Date onwards broken down by production'):
-    forecast_headcount_direct=forecast_resourcing_function(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
-    st.write(format_gp(headcount_actual_plus_forecast_with_subtotal(forecast_headcount_direct)))
+# with st.beta_expander('Click to see Forecast Direct Headcount from Current Date onwards broken down by production'):
+#     forecast_headcount_direct=forecast_resourcing_function(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+#     st.write(format_gp(headcount_actual_plus_forecast_with_subtotal(forecast_headcount_direct)))
 
-with st.beta_expander('Click to see Actual + Forecast Direct Headcount from 2015 onwards broken down by production'):
+# with st.beta_expander('Click to see Actual + Forecast Direct Headcount from 2015 onwards broken down by production'):
 
-    full_headcount_actual_forecast_no_subtotal=headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct)
-    full_headcount_actual_forecast_yes_subtotal=headcount_actual_plus_forecast_with_subtotal(full_headcount_actual_forecast_no_subtotal)
-    st.write('Actual plus Forecast',format_gp(full_headcount_actual_forecast_yes_subtotal))
+#     full_headcount_actual_forecast_no_subtotal=headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct)
+#     full_headcount_actual_forecast_yes_subtotal=headcount_actual_plus_forecast_with_subtotal(full_headcount_actual_forecast_no_subtotal)
+#     st.write('Actual plus Forecast',format_gp(full_headcount_actual_forecast_yes_subtotal))
 
-with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month end to compare productions'):
-    st.write ('Possibly could use this for graphing')
-    actual_plus_forecast_headcount = create_pivot_comparing_production_headcount(full_headcount_actual_forecast_yes_subtotal.sort_values(by='All',ascending=False))
-    st.write(format_gp(actual_plus_forecast_headcount))
+# with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month end to compare productions'):
+#     st.write ('Possibly could use this for graphing')
+#     actual_plus_forecast_headcount = create_pivot_comparing_production_headcount(full_headcount_actual_forecast_yes_subtotal.sort_values(by='All',ascending=False))
+#     st.write(format_gp(actual_plus_forecast_headcount))
 
-with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month end to compare productions'):
-    st.write('will need to think about graphing only the top 25 projects or something like that, will see when I do the graphs')
-    st.write(data_for_graphing(full_headcount_actual_forecast_no_subtotal))
+# with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month end to compare productions'):
+#     st.write('will need to think about graphing only the top 25 projects or something like that, will see when I do the graphs')
+#     st.write(data_for_graphing(full_headcount_actual_forecast_no_subtotal))
 
-with st.beta_expander('Overhead Headcount'):
-    st.write('overhead headcount')
-    # st.write('consol headcount data', consol_headcount_data.head())
-    # overhead_headcount=pivot_headcount(final_headcount(consol_headcount_data,'940-0500'))
-    # st.write(format_gp(overhead_headcount))
+
+
+
+
+
+with st.beta_expander('Actual Headcount for 940'):
     new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
     prelim_data=headcount_921_940(consol_headcount_data)
-    # st.write('new 921 and 940 total')
-    # st.write(format_dataframe(new_headcount))
-    # st.write('need to seperate out amounts between 921 and 940')
-    # st.write(prelim_data.head())
     data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
     data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
-    # st.write(data_headcount_921.head())
-    # st.write('this is updated headcount for 940 broken down by Project')
-    # st.write(format_dataframe(pivot_headcount(data_headcount_921)))
     st.write(format_dataframe(pivot_headcount(data_headcount_940)))
-    st.write('this is updated headcount for 921 and 940 broken down by Department')
-    # st.write(format_dataframe(pivot_headcount_dept(data_headcount_921)))
-    # st.write(format_dataframe(pivot_headcount_dept(data_headcount_940)))
 
+with st.beta_expander('Overall Headcount to date broken down by Department'):
+    data_graphing_actual_to_date=headcount_921_940(consol_headcount_data)
+    actual_pivot=pivot_headcount_dept(data_graphing_actual_to_date)
+    st.write(format_dataframe(actual_pivot))
+
+with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
+    forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+    updated=new_headcount_actual_plus_forecast(actual_pivot,forecast_pivot).ffill(axis=1)
+    updated_subtotal=headcount_actual_plus_forecast_with_subtotal(updated)
+    st.write(format_dataframe(updated_subtotal))
+    st.write('Data friendly version for graphing below')
+    data_graph=data_for_graphing_dept(updated)
+    st.write(data_graph.head())
+    st.write('check sum should match total of above', data_graph['headcount'].sum())
+    st.write('sum of above dataframe', updated_subtotal.loc['All','All'])
+    st.write('True means both amounts match',data_graph['headcount'].sum()==updated_subtotal.loc['All','All'])
+
+with st.beta_expander('Overall Headcount to date broken down by Project'):
+    st.write(format_dataframe(pivot_headcount(data_graphing_actual_to_date)))
+
+with st.beta_expander('921 Headcount by Project - actual + forecast'):
+    forecast_headcount_direct=forecast_resourcing_function(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+    pivot_921_actual=pivot_headcount(data_headcount_921)
+    # st.write('forecast pivot', forecast_headcount_direct)
+
+    # concat_df = headcount_concat(pivot_921_actual,forecast_headcount_direct)
+    concat_df = headcount_actual_plus_forecast(pivot_921_actual,forecast_headcount_direct)
+    
+    # st.write('below has no subtotal')
+    # st.write(format_dataframe(concat_df))
+    # st.write('below has subtotal')
+    with_subtotal = headcount_actual_plus_forecast_with_subtotal(concat_df)
+    st.write(format_dataframe(with_subtotal))
+    st.write(with_subtotal.loc['All','All'])
+
+with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
+    st.write ('Use this for graphing')
+    actual_plus_forecast_headcount = create_pivot_comparing_production_headcount(with_subtotal.sort_values(by='All',ascending=False))
+    # with_subtotal_all=headcount_actual_plus_forecast_with_subtotal(actual_plus_forecast_headcount)
+    st.write(format_gp(actual_plus_forecast_headcount))
+    st.write ('Check that total equals 921 in above')
+    st.write(actual_plus_forecast_headcount.sum().sum())
+    st.write('921 dataframe',with_subtotal.loc['All','All'])
+    # st.write(format_dataframe(with_subtotal_all))
 
 with st.beta_expander('Historical GP Analysis'):
     # NL_Revenue = gp_by_project_sales_cos(NL_Data_21, coding_acc_schedule,Schedule_Name='Revenue', Department=None)
@@ -99,30 +134,3 @@ with st.beta_expander('Historical GP Analysis'):
     production_gp_percent=gp_percent_by_project(production_gross_profit,production_revenue)
     revenue_gp_gp_percent_table = gp_revenue_concat(production_gross_profit, production_revenue,production_gp_percent)
     st.write(format_gp(revenue_gp_gp_percent_table))
-
-with st.beta_expander('Overall Headcount to date broken down by Department'):
-    data_graphing_actual_to_date=headcount_921_940(consol_headcount_data)
-    # st.write(data_graphing_actual_to_date.head())
-    actual_pivot=pivot_headcount_dept(data_graphing_actual_to_date)
-    st.write(format_dataframe(actual_pivot))
-
-with st.beta_expander('Overall Headcount to date broken down by Project'):
-    st.write(format_dataframe(pivot_headcount(data_graphing_actual_to_date)))
-
-with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
-    forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
-    updated=new_headcount_actual_plus_forecast(actual_pivot,forecast_pivot).ffill(axis=1)
-    st.write(format_dataframe(headcount_actual_plus_forecast_with_subtotal(updated)))
-    st.write('Data friendly version for graphing below')
-    data_graph=data_for_graphing_dept(updated)
-    st.write(data_graph)
-    st.write('check sum should match total of above', data_graph['headcount'].sum())
-
-with st.beta_expander('921 Headcount by Project - actual + forecast'):
-    pivot_921_actual=pivot_headcount(data_headcount_921)
-    # st.write('forecast pivot', forecast_headcount_direct)
-    concat_df = headcount_concat(pivot_921_actual,forecast_headcount_direct)
-    # st.write('below has no subtotal')
-    # st.write(format_dataframe(concat_df))
-    # st.write('below has subtotal')
-    st.write(format_dataframe(headcount_actual_plus_forecast_with_subtotal(concat_df)))
