@@ -406,6 +406,7 @@ def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_perio
     # x=load_ledger_data(forecast_resourcing_file).copy()
     # forecast_project_mapping=pd.
     x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project'})
+    # st.write(x)
     x.columns= x.columns.astype(str)
     sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
     sliced_x=sliced_x.set_index('Project').unstack(level='Project').reset_index().rename(columns={'level_0':'date',0:'headcount'})
@@ -546,3 +547,29 @@ def headcount_concat(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
     forecast = forecast_headcount_direct.drop('All',axis=1).drop(['All'])
     return pd.concat([actual,forecast],axis=1)
+
+def forecast_resourcing_test(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    # x=load_ledger_data(forecast_resourcing_file).copy()
+    # forecast_project_mapping=pd.
+    # x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project'})
+    # x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project_name',axis=1).rename(columns={'Project':'Project'})
+    x=pd.merge(x,forecast_project_mapping,on='Project',how='outer')
+    x['Project_update'] = x['Project_name'].str[8:]
+    x= x.drop(['Project','Project_name'], axis=1).rename(columns={'Project_update':'Project'})
+    # st.write('test project', x)
+    x = x[ [ col for col in x.columns if col != 'Project' ] + ['Project'] ]
+    # st.write(x)
+    x.columns= x.columns.astype(str)
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    sliced_x=sliced_x.set_index('Project').unstack(level='Project').reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    sliced_x=sliced_x.groupby(['Project','date'])['headcount'].sum().reset_index()    
+    x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
+    return x
+
+def test_pivot_headcount(x):
+    # st.write('this is input to test pivot headcount actual function',x)
+    x= x.drop('Project', axis=1).rename(columns={'Project_Name':'Project'})
+    summary= pd.pivot_table(x, values='Headcount',index=['Project'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Project')
+    return summary
