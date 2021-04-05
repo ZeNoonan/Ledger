@@ -11,10 +11,13 @@ budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_9
 final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,month_period_clean,load_data,load_16_19_clean,forecast_resourcing_function,df_concat,
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
-test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,
+test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,
+test_pivot_headcount,
 )
 
 st.set_page_config(layout="wide")
+
+st.write('CLEAN UP THE TESTS AND RE-RUN THEN CHECK EXPORT TO EXCEL')
 
 st.write('Select start of forecast period below and actual')
 with st.echo():
@@ -25,10 +28,12 @@ data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2016_19='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
 forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
 forecast_test=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
-forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
-coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
-coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
-Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
+st.write('Check these after importing new data should try with Forecast 2')
+with st.echo():
+    forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
+    coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
+    coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
+    Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
@@ -76,6 +81,7 @@ with st.beta_expander('Actual Headcount for 940'):
     new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
     prelim_data=headcount_921_940(consol_headcount_data)
     data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
+    # st.write('checking data headcount 921', data_headcount_921.head())
     data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
     st.write(format_dataframe(pivot_headcount(data_headcount_940)))
 
@@ -98,30 +104,50 @@ with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
 
 with st.beta_expander('Overall Headcount to date broken down by Project'):
     st.write(format_dataframe(pivot_headcount(data_graphing_actual_to_date)))
+    # st.write('test checking project is ok', data_graphing_actual_to_date)
+    st.write('test looks ok',format_dataframe(test_pivot_headcount(data_graphing_actual_to_date)))
 
 with st.beta_expander('921 Headcount by Project - actual + forecast'):
     forecast_headcount_direct=forecast_resourcing_function(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+    
+    test_forecast_headcount_direct=forecast_resourcing_test(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+    # st.write('test forecast resourcing',test_forecast_headcount_direct)
+    
     pivot_921_actual=pivot_headcount(data_headcount_921)
+    test_pivot_921_actual=test_pivot_headcount(data_headcount_921)
+    # st.write('test pivot actual', test_pivot_921_actual)
     # st.write('forecast pivot', forecast_headcount_direct)
-
     # concat_df = headcount_concat(pivot_921_actual,forecast_headcount_direct)
     concat_df = headcount_actual_plus_forecast(pivot_921_actual,forecast_headcount_direct)
-    
+    test_concat_df = headcount_actual_plus_forecast(test_pivot_921_actual,test_forecast_headcount_direct)
+    # st.write('test', test_concat_df)
+
     # st.write('below has no subtotal')
     # st.write(format_dataframe(concat_df))
     # st.write('below has subtotal')
     with_subtotal = headcount_actual_plus_forecast_with_subtotal(concat_df)
+    test_with_subtotal = headcount_actual_plus_forecast_with_subtotal(test_concat_df)
     st.write(format_dataframe(with_subtotal))
+    st.write('test',format_dataframe(test_with_subtotal))
     st.write(with_subtotal.loc['All','All'])
+    st.write('test',test_with_subtotal.loc['All','All'])
 
 with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
     st.write ('Use this for graphing')
     actual_plus_forecast_headcount = create_pivot_comparing_production_headcount(with_subtotal.sort_values(by='All',ascending=False))
+    test_actual_plus_forecast_headcount = create_pivot_comparing_production_headcount(test_with_subtotal.sort_values(by='All',ascending=False))
+    # st.write('test', test_actual_plus_forecast_headcount)
     # with_subtotal_all=headcount_actual_plus_forecast_with_subtotal(actual_plus_forecast_headcount)
     st.write(format_gp(actual_plus_forecast_headcount))
+    st.write('test',format_gp(test_actual_plus_forecast_headcount))
     st.write ('Check that total equals 921 in above')
     st.write(actual_plus_forecast_headcount.sum().sum())
     st.write('921 dataframe',with_subtotal.loc['All','All'])
+
+    st.write('test check below')
+    st.write(test_actual_plus_forecast_headcount.sum().sum())
+    st.write('921 dataframe',test_with_subtotal.loc['All','All'])
+
     # st.write(format_dataframe(with_subtotal_all))
 
 with st.beta_expander('Historical GP Analysis'):
