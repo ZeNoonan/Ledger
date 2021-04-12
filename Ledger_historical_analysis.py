@@ -16,7 +16,7 @@ final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,mon
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
-test_pivot_headcount,get_table_download_link,chart_gp,
+test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,
 )
 
 st.set_page_config(layout="wide")
@@ -31,8 +31,11 @@ with st.echo():
 
 data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2016_19='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
-forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
-forecast_test=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
+# forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
+# forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/resourcing_planner_test.xlsx')
+# forecast_test=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
+forecast_test=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/resourcing_planner_test.xlsx')
+# st.write('is CG here', forecast_test)
 st.write('Check these after importing new data should try with Forecast 2')
 with st.echo():
     forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
@@ -66,24 +69,31 @@ with st.beta_expander('Overall Headcount to date broken down by Department'):
     actual_pivot=pivot_headcount_dept(data_graphing_actual_to_date)
     st.write(format_dataframe(actual_pivot))
     st.markdown(get_table_download_link(format_dataframe(actual_pivot)), unsafe_allow_html=True)
+    check_dept_headcount = actual_pivot.loc['All','All']
+    # st.write('If True passes checked', check_dept_headcount==check_project_headcount)
 
 with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
+    # st.write(forecast_pivot)
     updated=new_headcount_actual_plus_forecast(actual_pivot,forecast_pivot).ffill(axis=1)
     updated_subtotal=headcount_actual_plus_forecast_with_subtotal(updated)
     st.write(format_dataframe(updated_subtotal))
     st.markdown(get_table_download_link(updated_subtotal), unsafe_allow_html=True)
     st.write('Data friendly version for graphing below')
-    data_graph=data_for_graphing_dept(updated)
+    data_graph=data_for_graphing_dept(x=updated, select_level='Department')
     st.write(data_graph.head())
     st.markdown(get_table_download_link(data_graph), unsafe_allow_html=True)
     st.write('check sum should match total of above', data_graph['headcount'].sum())
     st.write('sum of above dataframe', updated_subtotal.loc['All','All'])
     st.write('True means both amounts match',data_graph['headcount'].sum()==updated_subtotal.loc['All','All'])
+    st.altair_chart(chart_area_headcount(x=data_graph,select_coding='Department',tooltip_selection='headcount'),use_container_width=True)
 
 with st.beta_expander('Overall Headcount to date broken down by Project'):
     st.write(format_dataframe(test_pivot_headcount(data_graphing_actual_to_date)))
     st.markdown(get_table_download_link(pivot_headcount(data_graphing_actual_to_date)), unsafe_allow_html=True)
+    check_project_headcount = pivot_headcount(data_graphing_actual_to_date).loc['All','All']
+    st.write('If True passes checked', check_dept_headcount==check_project_headcount)
+    # st.write('sum of above dataframe', pivot_headcount(data_graphing_actual_to_date).loc['All','All'])
 
 with st.beta_expander('921 Headcount by Project - actual + forecast'):
     forecast_headcount_direct=forecast_resourcing_function(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
@@ -99,6 +109,10 @@ with st.beta_expander('921 Headcount by Project - actual + forecast'):
     st.markdown(get_table_download_link(test_with_subtotal), unsafe_allow_html=True)
     st.write(with_subtotal.loc['All','All'])
     st.write('test',test_with_subtotal.loc['All','All'])
+    data_graph_project=data_for_graphing_dept(x=test_concat_df,select_level='Project').fillna(0)
+    # st.write('check data for graphing', data_graph_project)
+    st.altair_chart(chart_area_headcount(x=data_graph_project,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+    
 
 with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
     st.write ('Use this for graphing')
@@ -126,11 +140,4 @@ with st.beta_expander('Historical GP Analysis'):
     st.altair_chart(chart_gp(graphing_gp),use_container_width=True)
 
 
-# def chart_gp(x):
-#     return alt.Chart(x).mark_circle(size=200).encode(
-#         alt.X('GP %',scale=alt.Scale(zero=False)),
-#         y='Gross_Profit',
-#         color='Project_Name',
-#         tooltip='Project_Name',
-#     ).interactive()
 
