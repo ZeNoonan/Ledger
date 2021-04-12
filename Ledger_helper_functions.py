@@ -521,6 +521,7 @@ def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_re
     return x
 
 def test_forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    # st.write(x)
     x= pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
     # st.write('full data for forecast is dept missing', x.head())
     # st.write(x[x['Department'].isnull()]) # ALWAYS CHECK FOR NAN VALUES
@@ -542,9 +543,9 @@ def new_headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcoun
     merged_values = pd.concat([actual,forecast_headcount_direct],axis=1).ffill(axis=1)
     return merged_values
 
-def data_for_graphing_dept(x):
-    return x.unstack(level='Department').reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
-    .reset_index().set_index('Department').drop(['All']).reset_index()
+def data_for_graphing_dept(x, select_level):
+    return x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
+    .reset_index().set_index(select_level).drop(['All']).reset_index()
 
 def headcount_concat(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
@@ -600,4 +601,12 @@ def chart_gp(x):
         y='Gross_Profit',
         color='Project_Name',
         tooltip='Project_Name',
+    ).interactive()
+
+def chart_area_headcount(x,select_coding,tooltip_selection):
+    return alt.Chart(x).mark_area().encode(
+        alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),
+        y='headcount',
+        color=select_coding,
+        tooltip=tooltip_selection,
     ).interactive()
