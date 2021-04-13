@@ -10,6 +10,8 @@ budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_9
 
 st.set_page_config(layout="wide")
 pd.set_option('use_inf_as_na', True)
+current_month_index=6
+select_budget_forecast=2
 
 Budget_2020_Raw, F1_2020_Raw, F2_2020_Raw, F3_2020_Raw = [pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2021.xlsx',sheet_name=x) 
 for x in ['Budget','F1', 'F2', 'F3']]
@@ -20,7 +22,8 @@ Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project
 
 @st.cache
 def load_ledger_data():
-    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
+    # return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
+    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_07.xlsx')
 NL = load_ledger_data().copy()
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
@@ -116,7 +119,7 @@ class Budget_v_Actual():
 
 with st.beta_expander('Click to see Company YTD and Month PL'):
     ytd_selection = st.selectbox("For what period would you like to run - from September up to?",options = ["Sep_YTD", "Oct_YTD",
-    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=5)
+    "Nov_YTD","Dec_YTD","Jan_YTD","Feb_YTD","Mar_YTD","Apr_YTD","May_YTD","Jun_YTD","Jul_YTD","Aug_YTD"], index=current_month_index)
     Budget_Actual = Budget_v_Actual(ytd_selection)
     col1,col2=st.beta_columns(2)
     with col1:
@@ -134,7 +137,7 @@ with st.beta_expander('Click to see Company YTD and Month PL'):
         second_slot = st.beta_container()
         second_slot.dataframe (Budget_Actual.actual_v_budget_month())
         if st.checkbox('Would you like to see the Forecast included in above?'):
-            forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0) # use index to default
+            forecast1_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1) # use index to default
             second_slot.dataframe (Budget_Actual.actual_v_forecast_month(forecast1_selection))
 
 
@@ -147,7 +150,7 @@ with st.beta_expander('Would you like to see the Results for a specific Departme
         third_slot=st.empty()
         third_slot.dataframe (Budget_Actual.actual_v_budget_ytd_dept(dept_selection))
         if st.checkbox('Would you like to see the Forecast included in Department results above?'):
-            forecast_selection = st.selectbox("Which Forecast do you want to include?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0, key='Dept YTD') # use index to default
+            forecast_selection = st.selectbox("Which Forecast do you want to include?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1, key='Dept YTD') # use index to default
             third_slot.dataframe (Budget_Actual.actual_v_forecast_ytd_dept(dept_selection, forecast_selection))
 
     with col4:    
@@ -156,11 +159,11 @@ with st.beta_expander('Would you like to see the Results for a specific Departme
         fourth_slot.dataframe (Budget_Actual.actual_v_budget_month_dept(dept_selection))
         if st.checkbox('Would you like to see the Forecast included in Departmental Month Results?'):
             forecast2_selection = st.selectbox("Which Forecast do you want to see included above?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],
-            index=0, key='Dept Month') # use index to default https://discuss.streamlit.io/t/how-to-use-the-key-field-in-interactive-widgets-api/1007/11
+            index=1, key='Dept Month') # use index to default https://discuss.streamlit.io/t/how-to-use-the-key-field-in-interactive-widgets-api/1007/11
             fourth_slot.dataframe (Budget_Actual.actual_v_forecast_month_dept(dept_selection,forecast2_selection))
 
 with st.beta_expander('Click for End of Year Projection'):
-    projection_selection = st.selectbox("Which Budget/Forecast to use for rest of year?",options = ["Budget", "F1","F2","F3"],index=1)
+    projection_selection = st.selectbox("Which Budget/Forecast to use for rest of year?",options = ["Budget", "F1","F2","F3"],index=select_budget_forecast)
     fifth_slot = st.empty()
     fifth_slot.dataframe (Budget_Actual.actual_v_forecast_year_projection(ytd_selection, coding_acc_schedule,projection_selection))
     if st.checkbox ('Select for Department'):
@@ -178,7 +181,7 @@ with st.beta_expander('Click for End of Year Projection'):
 
 # with col4:
 with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'):
-    one_selection = st.selectbox("Which Budget/Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='forecast_for_gp') # use index to default
+    one_selection = st.selectbox("Which Budget/Forecast do you want to see?",options = ["Budget","Forecast Q1", "Forecast Q2","Forecast Q3"],index=2,key='forecast_for_gp') # use index to default
     forecast_var= {"Budget":Budget_Data,"Forecast Q1":F1_Data,"Forecast Q2":F2_Data,"Forecast Q3":F3_Data}
     # dep_sel=st.selectbox("Which Department do you want to see?",options = ['None',"TV", "CG",
     # "Post","IT","Pipeline","Admin","Development"],index=0, key='department selection for GP')
@@ -199,6 +202,8 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=None)
             st.write (format_gp((revenue_variance).reindex(sort)))
             st.write (format_gp(get_total_by_month(revenue_variance)))
+            # dep_revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
+            # st.write('Revenue Dept Variance',format_gp(dep_revenue_variance))
 
     with col_cos:
             st.write('COS Variance by Production')
@@ -206,5 +211,21 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             forecast_selection,Schedule_Name='Cost of Sales', Department=None)
             st.write (format_gp((cos_variance).reindex(sort)))
             st.write (format_gp(get_total_by_month(cos_variance)))
+            # dep_cos_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+            # forecast_selection,Schedule_Name='Cost of Sales', Department=dep_sel)
+            # st.write('COS Dept Variance',format_gp(dep_cos_variance))
+
+with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Budget'):
+    dep_sel=st.selectbox("Which Department do you want to see?",options = ['None',"TV", "CG",
+    "Post","IT","Pipeline","Admin","Development"],index=0, key='department selection for GP')
+    
+    dep_revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
+    st.write('Revenue Dept Variance',format_gp(dep_revenue_variance))
+
+    dep_cos_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Cost of Sales', Department=dep_sel)
+    st.write('COS Dept Variance',format_gp(dep_cos_variance))
+
 
 
