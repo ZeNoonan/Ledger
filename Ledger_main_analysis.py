@@ -5,7 +5,7 @@ import streamlit as st
 # from Ledger_helper_functions import*
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
-long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,
+long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,monthly_forecast_gp_sales_cos,
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount)
 
 st.set_page_config(layout="wide")
@@ -31,6 +31,16 @@ NL_Data = NL_Raw_Clean_File(NL, coding_acc_schedule)
 # https://stackoverflow.com/questions/64563976/how-to-store-result-of-function-run-multiple-times-in-different-variables-pyth
 
 Budget_Data,F1_Data, F2_Data,F3_Data = [Budget_Raw_Clean_File(x, coding_acc_schedule, Project_codes) for x in [Budget_2020_Raw, F1_2020_Raw, F2_2020_Raw, F3_2020_Raw]]
+# st.write('this is budget data', Budget_Data)
+dummy_budget=Budget_Data.copy()
+dummy_budget['Journal Amount']=0
+dummy_nl=NL_Data.copy()
+dummy_nl['Journal Amount']=0
+dummy_nl['Debit']=0
+dummy_nl['Credit']=0
+st.write(dummy_nl)
+# col_names = Budget_Data.columns.to_list()
+# dummy_budget = pd.DataFrame(columns=col_names)
 
 class Budget_v_Actual():
 
@@ -112,7 +122,8 @@ class Budget_v_Actual():
         return budget_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name,Department)
         # return format_gp(revenue_actual_budget)
 
-
+    def by_month_by_production_by_dept(self, NL_data, coding_acc_schedule, forecast_selection, Schedule_Name, Department=None):
+        return gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name,Department)
     
 
 
@@ -221,11 +232,36 @@ with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Bu
     
     dep_revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
     forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
-    st.write('Revenue Dept Variance',format_gp(dep_revenue_variance))
-
     dep_cos_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
     forecast_selection,Schedule_Name='Cost of Sales', Department=dep_sel)
-    st.write('COS Dept Variance',format_gp(dep_cos_variance))
+
+    dep_actual_revenue=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    dummy_budget,Schedule_Name='Revenue', Department=dep_sel)
+    dep_forecast_revenue=Budget_Actual.variance_by_month_by_production_by_dept(dummy_nl, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
+    # st.write('checking forecast selection',forecast_selection)
+    # st.write('checking dummy nl selection',dummy_nl)
 
 
+    dep_actual_v__forecast = dep_revenue_variance.add (dep_cos_variance, fill_value=0)
+    dep_actual_v__forecast = dep_actual_v__forecast.iloc[(-dep_actual_v__forecast['Total'].abs()).argsort()]
+    dep_sort = dep_actual_v__forecast.index.values.tolist()
+    st.dataframe(format_gp(dep_actual_v__forecast))    
+    st.write (format_gp(get_total_by_month(dep_actual_v__forecast)))
 
+    col_first,col_second = st.beta_columns(2)
+    with col_first:
+        st.write('Revenue Dept Variance',format_gp(dep_revenue_variance.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_revenue_variance)))
+
+    with col_second:
+        st.write('COS Dept Variance',format_gp(dep_cos_variance.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_cos_variance)))
+
+
+with st.beta_expander('Working on Actual & Budget/Forecast Revenue COS Breakdowns by Project'):
+    st.write('Revenue Actual',format_gp(dep_actual_revenue.reindex(sort)))
+    st.write (format_gp(get_total_by_month(dep_actual_revenue)))
+
+    st.write('Revenue Forecast Test',format_gp(dep_forecast_revenue))
+    # st.write(forecast_monthly)

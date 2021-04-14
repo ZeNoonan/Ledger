@@ -250,6 +250,9 @@ def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name
     # return format_gp(x)
     # return x
 
+def monthly_forecast_gp_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue',Department=None):
+    return gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name,Department)
+
 @st.cache
 def long_format_budget(df_gp, NL):
     max_per = NL ['Per.'].max()
@@ -546,6 +549,11 @@ def new_headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcoun
 def data_for_graphing_dept(x, select_level):
     return x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
     .reset_index().set_index(select_level).drop(['All']).reset_index()
+
+def data_for_graphing_overall(x, select_level):
+    update = x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
+    .reset_index().set_index(select_level).reset_index()
+    return update[update['Department'].isin(['All'])].copy()
 
 def headcount_concat(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])

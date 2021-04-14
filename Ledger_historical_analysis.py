@@ -16,7 +16,7 @@ final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,mon
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
-test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,
+test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,
 )
 
 st.set_page_config(layout="wide")
@@ -87,6 +87,11 @@ with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     st.write('sum of above dataframe', updated_subtotal.loc['All','All'])
     st.write('True means both amounts match',data_graph['headcount'].sum()==updated_subtotal.loc['All','All'])
     st.altair_chart(chart_area_headcount(x=data_graph,select_coding='Department',tooltip_selection='headcount'),use_container_width=True)
+
+with st.beta_expander('Overall Headcount Total Actual + Forecast'):
+    overall=data_for_graphing_overall(x=updated_subtotal, select_level='Department')
+    # st.write(overall)
+    st.altair_chart(chart_area_headcount(x=overall,select_coding='Department',tooltip_selection='headcount'),use_container_width=True)
 
 with st.beta_expander('Overall Headcount to date broken down by Project'):
     st.write(format_dataframe(test_pivot_headcount(data_graphing_actual_to_date)))
