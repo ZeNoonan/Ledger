@@ -5,7 +5,7 @@ import streamlit as st
 # from Ledger_helper_functions import*
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
-long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,monthly_forecast_gp_sales_cos,
+long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,monthly_forecast_gp_sales_cos,data_up_to_date,
 budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount)
 
 st.set_page_config(layout="wide")
@@ -38,9 +38,11 @@ dummy_nl=NL_Data.copy()
 dummy_nl['Journal Amount']=0
 dummy_nl['Debit']=0
 dummy_nl['Credit']=0
-st.write(dummy_nl)
+# st.write(dummy_nl)
 # col_names = Budget_Data.columns.to_list()
 # dummy_budget = pd.DataFrame(columns=col_names)
+
+
 
 class Budget_v_Actual():
 
@@ -125,6 +127,10 @@ class Budget_v_Actual():
     def by_month_by_production_by_dept(self, NL_data, coding_acc_schedule, forecast_selection, Schedule_Name, Department=None):
         return gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name,Department)
     
+    def test(self, NL_data, coding_acc_schedule, forecast_selection, Schedule_Name, Department=None):
+        NL_Revenue = gp_by_project_sales_cos(NL_Data, coding_acc_schedule,Schedule_Name,Department)
+        NL_melt_Revenue = long_format_nl(NL_Revenue)
+        return monthly_forecast_gp_sales_cos (forecast_selection, coding_acc_schedule, NL_melt_Revenue,Schedule_Name,Department) 
 
 
 
@@ -228,7 +234,7 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
 
 with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Budget'):
     dep_sel=st.selectbox("Which Department do you want to see?",options = ['None',"TV", "CG",
-    "Post","IT","Pipeline","Admin","Development"],index=0, key='department selection for GP')
+    "Post","IT","Pipeline","Admin","Development"],index=1, key='department selection for GP')
     
     dep_revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
     forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
@@ -237,8 +243,10 @@ with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Bu
 
     dep_actual_revenue=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
     dummy_budget,Schedule_Name='Revenue', Department=dep_sel)
-    dep_forecast_revenue=Budget_Actual.variance_by_month_by_production_by_dept(dummy_nl, coding_acc_schedule,
+    dep_forecast_revenue_month=Budget_Actual.test(NL_Data, coding_acc_schedule,
     forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
+    # dep_forecast_revenue=Budget_Actual.variance_by_month_by_production_by_dept(dummy_nl, coding_acc_schedule,
+    # forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
     # st.write('checking forecast selection',forecast_selection)
     # st.write('checking dummy nl selection',dummy_nl)
 
@@ -260,8 +268,12 @@ with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Bu
 
 
 with st.beta_expander('Working on Actual & Budget/Forecast Revenue COS Breakdowns by Project'):
-    st.write('Revenue Actual',format_gp(dep_actual_revenue.reindex(sort)))
-    st.write (format_gp(get_total_by_month(dep_actual_revenue)))
+    column_one,column_second = st.beta_columns(2)
+    with column_one:
+        st.write('Revenue Actual',format_gp(dep_actual_revenue.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_actual_revenue)))
 
-    st.write('Revenue Forecast Test',format_gp(dep_forecast_revenue))
-    # st.write(forecast_monthly)
+    with column_second:
+        st.write('Revenue Budget/Forecast',format_gp(dep_forecast_revenue_month.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_forecast_revenue_month)))
+    st.write('is sort causing the issue whereby I am not seeing total at bottom')

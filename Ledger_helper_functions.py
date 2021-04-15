@@ -50,7 +50,7 @@ def date_selection_for_PL(df, ytd_month_number):
     "Apr_YTD":8,"May_YTD":9,"Jun_YTD":10,"Jul_YTD":11,"Aug_YTD":12}
     df = df [ (df['Per.'] <= date_dict[ytd_month_number]) ] 
     filter = df['Per.']==date_dict[ytd_month_number]
-    df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter)
+    df ['Month_Amount'] = df.loc[:,'Journal Amount'].where(filter).copy()
     # st.write( df.loc[df['Name'].isnull()] ) # Always test after merge my issue was with the DONT DELETE THIS COMMENT!
     # spreadsheet didn't have full coding https://stackoverflow.com/questions/53645882/pandas-merging-101
     return df
@@ -250,8 +250,21 @@ def budget_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name
     # return format_gp(x)
     # return x
 
-def monthly_forecast_gp_sales_cos(data, coding_acc_schedule,Schedule_Name='Revenue',Department=None):
-    return gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name,Department)
+def monthly_forecast_gp_sales_cos(data, coding_acc_schedule,NL_melt,Schedule_Name='Revenue',Department=None):
+    budget = gp_by_project_sales_cos(data, coding_acc_schedule,Schedule_Name,Department)
+    xx = long_format_budget(budget, NL_melt)
+    x = pd.pivot_table(xx, index='Project_Name',columns = 'Per.')
+    x.columns = x.columns.droplevel(0)
+    # x['Total'] = x.sum(axis=1)
+    # x.loc['Total']= x.sum(numeric_only=True, axis=0)
+    x.loc[:,'Total'] = x.sum(numeric_only=True, axis=1)
+    x=x.iloc[(-x['Total'].abs()).argsort()] #https://stackoverflow.com/questions/30486263/sorting-by-absolute-value-without-changing-the-data
+    x.columns = x.columns.astype(str)
+    x=x.reset_index().set_index('Project_Name')
+    x=x.rename(columns={'1.0':'Sep','2.0':'Oct','3.0':'Nov','4.0':'Dec','5.0':'Jan','6.0':'Feb','7.0':'Mar','8.0':'Apr','9.0':'May',
+    '10.0':'Jun','11.0':'Jul','12.0':'Aug'}) # CONTINUE THIS ON check to see if need above code
+    return x
+
 
 @st.cache
 def long_format_budget(df_gp, NL):
@@ -618,3 +631,6 @@ def chart_area_headcount(x,select_coding,tooltip_selection):
         color=select_coding,
         tooltip=tooltip_selection,
     ).interactive()
+
+def data_up_to_date(x,ytd_selection):
+    return date_selection_for_PL(x,ytd_selection)
