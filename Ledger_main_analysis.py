@@ -6,7 +6,8 @@ import streamlit as st
 from Ledger_helper_functions import (Budget_Raw_Clean_File,NL_Raw_Clean_File, date_selection_for_PL, PL_generation, merge_pl_dataframe,clean_format_PL_presentation,
 pretty_PL_format,ytd_column_forecast,month_column_forecast,pl_dept_generation, end_of_year_forecast, end_of_year_forecast_dept, gp_by_project,
 long_format_budget,long_format_nl, format_gp, gp_nl_budget_comp, budget_forecast_gp,gp_by_project_sales_cos,monthly_forecast_gp_sales_cos,data_up_to_date,
-budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,company_ee_project,combined_921_headcount,pivot_headcount)
+budget_forecast_gp_sales_cos, get_total_by_month,credit_notes_resolve,UK_clean_921,long_format_function,
+company_ee_project,combined_921_headcount,pivot_headcount)
 
 st.set_page_config(layout="wide")
 pd.set_option('use_inf_as_na', True)
@@ -25,6 +26,8 @@ def load_ledger_data():
     # return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
     return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_07.xlsx')
 NL = load_ledger_data().copy()
+# st.write(NL[NL['Project'].str.contains('Eureka')])
+st.write(Budget_2020_Raw.head(10))
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
 NL_Data = NL_Raw_Clean_File(NL, coding_acc_schedule)
@@ -245,6 +248,11 @@ with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Bu
     dummy_budget,Schedule_Name='Revenue', Department=dep_sel)
     dep_forecast_revenue_month=Budget_Actual.test(NL_Data, coding_acc_schedule,
     forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
+    dep_actual_cos=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    dummy_budget,Schedule_Name='Cost of Sales', Department=dep_sel)
+    dep_forecast_cos_month=Budget_Actual.test(NL_Data, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Cost of Sales', Department=dep_sel)
+
     # dep_forecast_revenue=Budget_Actual.variance_by_month_by_production_by_dept(dummy_nl, coding_acc_schedule,
     # forecast_selection,Schedule_Name='Revenue', Department=dep_sel)
     # st.write('checking forecast selection',forecast_selection)
@@ -267,7 +275,7 @@ with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Bu
         st.write (format_gp(get_total_by_month(dep_cos_variance)))
 
 
-with st.beta_expander('Working on Actual & Budget/Forecast Revenue COS Breakdowns by Project'):
+with st.beta_expander('Actual & Budget/Forecast Revenue COS Breakdowns by Project'):
     column_one,column_second = st.beta_columns(2)
     with column_one:
         st.write('Revenue Actual',format_gp(dep_actual_revenue.reindex(sort)))
@@ -276,4 +284,21 @@ with st.beta_expander('Working on Actual & Budget/Forecast Revenue COS Breakdown
     with column_second:
         st.write('Revenue Budget/Forecast',format_gp(dep_forecast_revenue_month.reindex(sort)))
         st.write (format_gp(get_total_by_month(dep_forecast_revenue_month)))
-    st.write('is sort causing the issue whereby I am not seeing total at bottom')
+    # st.write('is sort causing the issue whereby I am not seeing total at bottom')
+    column_one,column_second = st.beta_columns(2)
+    with column_one:
+        st.write('COS Actual',format_gp(dep_actual_cos.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_actual_cos)))
+
+    with column_second:
+        st.write('COS Budget/Forecast',format_gp(dep_forecast_cos_month.reindex(sort)))
+        st.write (format_gp(get_total_by_month(dep_forecast_cos_month)))
+
+with st.beta_expander('Gross Profit percent by Project'):
+    st.write(dep_actual_revenue.reset_index())
+    cum_revenue_actual=long_format_function(dep_actual_revenue)
+    cum_cos_actual=long_format_function(dep_actual_cos)
+    cum_gp_actual=cum_revenue_actual.add(cum_cos_actual, fill_value=0)
+    st.write(long_format_function(dep_actual_revenue))
+    st.write(cum_gp_actual)
+

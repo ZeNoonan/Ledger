@@ -11,6 +11,7 @@ def Budget_Raw_Clean_File(Budget_Raw_Clean,coding_acc_schedule, Project_codes):
     Budget_Raw_Clean['Acc_Schedule']=pd.to_numeric(Budget_Raw_Clean['Acc_Schedule'])
     Budget_Raw_Clean['Acc_Number']=Budget_Raw_Clean['ACCOUNT'].str[-8:]
     Budget_Raw_Clean['Department'] = Budget_Raw_Clean['ACCOUNT'].str[-14:-9]
+    Budget_Raw_Clean['SUBANALYSIS 0']= Budget_Raw_Clean['SUBANALYSIS 0'].replace({'1-Z-253':'1-Z-209'})
     Budget_Raw_Clean.loc[:,'BUDGET 1':'BUDGET 12'] = Budget_Raw_Clean.loc[:,'BUDGET 1':'BUDGET 12'] *-1
     Budget_Raw_Clean = Budget_Raw_Clean.melt(id_vars=['ACCOUNT', 'SUBANALYSIS 0','Acc_Schedule','Acc_Number','Department'],value_name='Journal Amount',var_name='Per.')
     Budget_Raw_Clean['Per.'] = Budget_Raw_Clean['Per.'].str[7:]
@@ -26,6 +27,7 @@ def NL_Raw_Clean_File(NL_Raw_Clean, coding_acc_schedule):
     # st.write(NL_Raw_Clean.head())
     NL_Raw_Clean['Acc_Schedule']=NL_Raw_Clean['Account Code'].str[:3]
     NL_Raw_Clean['Acc_Schedule']=pd.to_numeric(NL_Raw_Clean['Acc_Schedule'])
+    NL_Raw_Clean['Project']=NL_Raw_Clean['Project'].replace({'1-Z-253 Eureka 2':'1-Z-209 Eureka'})
     NL_Raw_Clean['Project_Code'] = NL_Raw_Clean['Project'].str[:8]
     NL_Raw_Clean['Project_Name'] = NL_Raw_Clean['Project'].str[8:]
     NL_Raw_Clean['Acc_Number'] = NL_Raw_Clean['Account Code']
@@ -634,3 +636,9 @@ def chart_area_headcount(x,select_coding,tooltip_selection):
 
 def data_up_to_date(x,ytd_selection):
     return date_selection_for_PL(x,ytd_selection)
+
+def long_format_function(x):
+    # max_per = NL ['Per.'].max()
+    x = x.drop(['Total'],axis=1)
+    return x.cumsum(axis=1)
+    # df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
