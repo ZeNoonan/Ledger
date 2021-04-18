@@ -27,7 +27,7 @@ def load_ledger_data():
     return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_07.xlsx')
 NL = load_ledger_data().copy()
 # st.write(NL[NL['Project'].str.contains('Eureka')])
-st.write(Budget_2020_Raw.head(10))
+# st.write(Budget_2020_Raw.head(10))
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
 NL_Data = NL_Raw_Clean_File(NL, coding_acc_schedule)
@@ -295,10 +295,13 @@ with st.beta_expander('Actual & Budget/Forecast Revenue COS Breakdowns by Projec
         st.write (format_gp(get_total_by_month(dep_forecast_cos_month)))
 
 with st.beta_expander('Gross Profit percent by Project'):
-    st.write(dep_actual_revenue.reset_index())
+    # st.write('revenue not cum sum',dep_actual_revenue.reset_index())
     cum_revenue_actual=long_format_function(dep_actual_revenue)
     cum_cos_actual=long_format_function(dep_actual_cos)
     cum_gp_actual=cum_revenue_actual.add(cum_cos_actual, fill_value=0)
+    cum_gp_percent_project = cum_gp_actual.divide(cum_revenue_actual)
     st.write(long_format_function(dep_actual_revenue))
-    st.write(cum_gp_actual)
+    st.write('revenue cum sum',cum_revenue_actual)
+    st.write('gp cum sum',cum_gp_actual)
+    st.write('gp cum percent',cum_gp_percent_project.replace([np.inf, -np.inf], np.NaN).fillna(0).reindex(sort))
 
