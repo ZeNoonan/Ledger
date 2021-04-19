@@ -642,3 +642,6 @@ def long_format_function(x):
     x = x.drop(['Total'],axis=1)
     return x.cumsum(axis=1)
     # df_gp = df_gp.reset_index().melt(id_vars=['Project_Name'], value_name='Journal_Amount', var_name='Per.')
+
+def format_table_percent(x):
+    return x.style.format({ "{:,.0f}%"})

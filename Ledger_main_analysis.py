@@ -208,6 +208,9 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
     st.write('GP Variance by Production')
     forecast_selection = forecast_var[one_selection]
 
+
+
+
     Revenue_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Revenue', Department=None)
     COS_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule, forecast_selection,Schedule_Name='Cost of Sales', Department=None)
     actual_v__forecast = Revenue_variance.add (COS_variance, fill_value=0)
@@ -234,6 +237,30 @@ with st.beta_expander('Click to see the Gross Profit Variance for YTD v. Budget'
             # dep_cos_variance=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
             # forecast_selection,Schedule_Name='Cost of Sales', Department=dep_sel)
             # st.write('COS Dept Variance',format_gp(dep_cos_variance))
+
+    company_actual_revenue=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    dummy_budget,Schedule_Name='Revenue', Department=None)
+    company_forecast_revenue_month=Budget_Actual.test(NL_Data, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Revenue', Department=None)
+    company_actual_cos=Budget_Actual.variance_by_month_by_production_by_dept(NL_Data, coding_acc_schedule,
+    dummy_budget,Schedule_Name='Cost of Sales', Department=None)
+    company_forecast_cos_month=Budget_Actual.test(NL_Data, coding_acc_schedule,
+    forecast_selection,Schedule_Name='Cost of Sales', Department=None)
+    # st.write(company_actual_revenue)
+    # st.write(company_forecast_revenue_month)
+    # st.write(company_actual_cos)
+    # st.write(company_forecast_cos_month)
+    company_cum_revenue_actual=long_format_function(company_actual_revenue)
+    company_cum_cos_actual=long_format_function(company_actual_cos)
+    company_cum_gp_actual=company_cum_revenue_actual.add(company_cum_cos_actual, fill_value=0)
+    company_cum_gp_percent_project = (company_cum_gp_actual.divide(company_cum_revenue_actual))*100
+    # st.write(long_format_function(dep_actual_revenue))
+    # st.write('revenue cum sum',company_cum_revenue_actual)
+    # st.write('gp cum sum',company_cum_gp_actual)
+    sort_revenue = company_actual_revenue.sort_values(by='Total',ascending=False).index.values.tolist()
+    gp_percent=company_cum_gp_percent_project.replace([np.inf, -np.inf], np.NaN).fillna(0).reindex(sort_revenue)
+    st.write('GP % Rolling by Project',gp_percent.style.format('{:,.0f}%'))
+
 
 with st.beta_expander('Click to see the Dept Gross Profit Variance for YTD v. Budget'):
     dep_sel=st.selectbox("Which Department do you want to see?",options = ['None',"TV", "CG",
