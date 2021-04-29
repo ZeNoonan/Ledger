@@ -464,6 +464,17 @@ def test_gp_by_project(data):
     gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
     return gp_by_project
 
+def acc_schedule_find_monthly(x, Schedule_Name):
+    x = x[x['Name']==Schedule_Name]
+    return x.groupby(['Project_Name','date'])['Journal Amount'].sum()
+
+def test_gp_by_project_monthly(data):
+    revenue_by_project = acc_schedule_find_monthly(data,'Revenue')
+    cos_by_project = acc_schedule_find_monthly(data,'Cost of Sales')
+    gp_by_project = revenue_by_project.add (cos_by_project, fill_value=0)
+    return gp_by_project
+
+
 def gp_percent_by_project(production_gross_profit,production_revenue):
     # gp_percent=production_gross_profit['Gross_Profit'] / production_revenue['Revenue']
     gp_percent= production_gross_profit.divide(production_revenue,fill_value=0)*100 # Can I get divdie to recognise the different columsn
@@ -625,6 +636,29 @@ def chart_gp(x):
         color='Project_Name',
         tooltip='Project_Name',
     ).interactive()
+
+def chart_gp_test(x):
+    base= alt.Chart(x).mark_circle(size=200).encode(
+        alt.X('GP %',scale=alt.Scale(zero=False)),
+        y='Gross_Profit',
+        color='Project_Name',
+        tooltip='Project_Name',
+    ) #https://stackoverflow.com/questions/65503289/altair-selection-error-javascript-error-duplicate-signal-name-selector074-i
+    text_on_base=base.mark_text(align='left',baseline='middle',dx=10,opacity=0.5).encode(text='Project_Name')
+    return base.interactive() + text_on_base
+
+def chart_gp_test_1(x):
+    base = alt.Chart(x).mark_circle(size=200).encode(
+        alt.X('GP %',scale=alt.Scale(zero=False)),
+        y=alt.Y('Gross_Profit'),
+        # text=alt.Text('Project_Name'),
+        color='Project_Name',
+        tooltip='Project_Name',
+    ) #https://stackoverflow.com/questions/65503289/altair-selection-error-javascript-error-duplicate-signal-name-selector074-i
+    text_on_base=base.mark_text(align='left',baseline='middle',dx=3).encode(text='Project_Name')
+    # got rid of interactive()
+    return base.interactive()
+    # return (base+text_on_base)
 
 def chart_area_headcount(x,select_coding,tooltip_selection):
     return alt.Chart(x).mark_area().encode(

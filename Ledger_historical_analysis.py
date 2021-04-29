@@ -16,7 +16,7 @@ final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,mon
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
-test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,
+test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,acc_schedule_find_monthly,test_gp_by_project_monthly,
 )
 
 st.set_page_config(layout="wide")
@@ -31,6 +31,7 @@ with st.echo():
 
 data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2016_19='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
+data_2014_15='C:/Users/Darragh/Documents/Python/Work/Data/NL_2014_2015.xlsx'
 # forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
 # forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/resourcing_planner_test.xlsx')
 # forecast_test=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
@@ -46,6 +47,8 @@ with st.echo():
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
 cached_2016_19=load_ledger_data(data_2016_19).copy()
+cached_2014_15=load_ledger_data(data_2014_15).copy()
+cached_2016_19=pd.concat([cached_2016_19,cached_2014_15])
 
 NL_Data_21=load_data(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
@@ -133,16 +136,39 @@ with st.beta_expander('Click to see Actual + Forecast Direct Headcount from Mont
 with st.beta_expander('Historical GP Analysis'):
     st.write('Historical GP Table')
     data_2016_current=consol_headcount_data
+    # st.write(data_2016_current.head())
     production_revenue=(acc_schedule_find(data_2016_current, 'Revenue'))
     production_gross_profit =test_gp_by_project(data_2016_current)
     production_gp_percent=gp_percent_by_project(production_gross_profit,production_revenue)
     revenue_gp_gp_percent_table = (gp_revenue_concat(production_gross_profit, production_revenue,production_gp_percent))
-    graphing_gp = revenue_gp_gp_percent_table.query('`Revenue`>5200000').reset_index()
-    # st.write(graphing_gp.sort_values(by='GP %', ascending=False))
-    # st.write(revenue_gp_gp_percent_table.query('`Revenue`>5200000').sort_values(by='Revenue',ascending=False))
+    revenue_gp_gp_percent_table=revenue_gp_gp_percent_table.reset_index()
+    # revenue_gp_gp_percent_table=revenue_gp_gp_percent_table[ ~(revenue_gp_gp_percent_table['Project_Name']=='BBF UK Costs') |
+    # ~(revenue_gp_gp_percent_table['Project_Name']=="Karma's World")]
+    
+    revenue_gp_gp_percent_table=revenue_gp_gp_percent_table[ ~(revenue_gp_gp_percent_table['Project_Name']=='BBF UK Costs')]
+    revenue_gp_gp_percent_table=revenue_gp_gp_percent_table[ ~(revenue_gp_gp_percent_table['Project_Name']=="Karma's World")]
+
+    revenue_gp_gp_percent_table=revenue_gp_gp_percent_table.set_index('Project_Name')
+    graphing_gp = revenue_gp_gp_percent_table.query('`Revenue`>4000000').reset_index()
+    # project_names_list =graphing_gp['Project_Name'].nunique()
+    
+    # st.write(project_names_list)
     st.write(format_gp(revenue_gp_gp_percent_table))
     st.markdown(get_table_download_link(revenue_gp_gp_percent_table), unsafe_allow_html=True)
-    st.altair_chart(chart_gp(graphing_gp),use_container_width=True)
+    # st.altair_chart(chart_gp(graphing_gp),use_container_width=True)
+    st.altair_chart(chart_gp_test(graphing_gp),use_container_width=True)
 
-
-
+with st.beta_expander('Historical GP Analysis by Month'):
+    production_revenue_monthly=(acc_schedule_find_monthly(data_2016_current, 'Revenue'))
+    st.write(production_revenue_monthly.head())
+    production_gross_profit_monthly =test_gp_by_project_monthly(data_2016_current)
+    st.write(production_gross_profit_monthly.head())
+    production_gp_percent_monthly=gp_percent_by_project(production_gross_profit_monthly,production_revenue_monthly)
+    st.write(production_gp_percent_monthly.head())
+    project_names_list =graphing_gp['Project_Name'].to_list()
+    st.write(project_names_list)
+    production_gp_percent_monthly=production_gp_percent_monthly.reset_index()
+    st.write(production_gp_percent_monthly.head())
+    rslt_df = production_gp_percent_monthly[production_gp_percent_monthly['Project_Name'].isin(project_names_list)] 
+    st.write(rslt_df)
+    st.write("need to look at rolling GP percent analysis, think that's what I want to do look at main analysis")
