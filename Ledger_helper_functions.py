@@ -86,7 +86,7 @@ def clean_format_PL_presentation(x, coding_sort):
     sub_total_overheads = x.reindex(['Payroll','Recruitment & HR','Rent & Service Charges','Building Expenses','Office Expenses','Travel',
     'Computer costs','Audit, Legal & Consulting','Committees','Insurance','Bank Charges','FX','Other','Other']).sum()
     x.loc['Gross Profit'] = gross_profit
-    x.loc['Gross Profit %'] = ( (gross_profit / x.loc['Revenue'])*100 )
+    x.loc['Gross Profit %'] = ( (gross_profit / x.loc['Revenue'])*100.00 ).astype(float)
     x.loc['Sub-Total Overheads'] = sub_total_overheads
     def check(x,account):
         if account in x.index:
@@ -114,9 +114,11 @@ def clean_format_PL_presentation(x, coding_sort):
 
 @st.cache
 def pretty_PL_format(df):
+    # If you want to see GP % at one decimal point just change the below to 0.1f it will change everything but is a workaround
     df= df.applymap('{:,.0f}'.format)
     df.loc['Gross Profit %']= df.loc['Gross Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
     df.loc['Net Profit %']= df.loc['Net Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
+    # df= df.applymap('{:,.0f}'.format)
     return df
 
 @st.cache
@@ -353,6 +355,7 @@ def company_ee_project(x):
     # x['Employee']=x['Employee'].str.replace(" ","")
     x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
     x= x.query('`Employee - Ext. Code`>0.5')
+    x = x.query('`Src. Account`!="BUK02"')
     x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
     x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
@@ -367,6 +370,7 @@ def combined_921_headcount(ee,UK,Mauve):
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
+    # st.write('this is Mauve any Description??', Mauve_2021.head())
     combined=combined.groupby(['calendar_year','calendar_month','Project','Project_Name'])['Headcount'].sum().reset_index()
     combined = combined.sort_values(by=['calendar_year','calendar_month','Headcount'], ascending=[True,True,False])
     combined['calendar_year']=combined['calendar_year']+2000
@@ -493,15 +497,26 @@ def format_table(x):
 
 def headcount_921_940(data):
     sch_921=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department']]
+    ['Description','Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department',]]
     # st.write('data',data.head())
     # st.write ('nl', sch_921.head()) #https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html
-    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department'])['Journal Amount'].sum().reset_index()
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department','Description'])['Journal Amount'].sum().reset_index()
     group_UK = sch_921.query('`Src. Account`=="BUK02"')
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department']]
+    ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
     return headcount_function(sch_921_ee,group_UK,group_no_UK)   
+
+def bbf_employees(data):
+    sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
+    ['Journal Amount','Employee','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
+    employee_921=company_ee_project(sch_921_ee).reset_index()
+    employee_921['Headcount']=pd.to_numeric(employee_921['Headcount'])
+    employee_921['calendar_year']=employee_921['calendar_year']+2000
+    employee_921=employee_921.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    employee_921['day']=1
+    employee_921['date']=pd.to_datetime(employee_921[['year','month','day']],infer_datetime_format=True)
+    return employee_921
 
 def format_dataframe(x):
     # return x.style.format("{:,.0f}",na_rep="-")
@@ -509,14 +524,28 @@ def format_dataframe(x):
     # .format(background_gradient(cmap='Blues'))
 
 def headcount_function(ee,UK,Mauve):
-    employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
-    UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
+    # employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
+    employee_921=company_ee_project(ee).reset_index()
+    employee_921['Category']='BBF'
+    # st.write('BBF description employee', employee_921.head())
+    # st.write(UK)
+    # UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
+    UK_921=UK_clean_921(UK).reset_index()
+    # st.write(UK_921.head())
+    UK_921['calendar_month']=np.where(UK_921['Jrn. No.']=='BUK0000979', 3, UK_921['calendar_month'])
+    UK_921['Category']='BBF_UK'
+    # st.write('UK issue with March invoice entered in April', UK_921.groupby(['calendar_month'])['Headcount'].sum())
     Mauve_2021=credit_notes_resolve(Mauve).reset_index()
+    Mauve_2021['Category']='Mauve'
+    # st.write('Description with Mauve before function??',Mauve.head())
+    # st.write('Description with Mauve??',Mauve_2021.head())
+    # st.write('Mauve', Mauve_2021.groupby(['calendar_month'])['Headcount'].sum())
     combined = pd.concat([employee_921, UK_921, Mauve_2021]).drop(['index'],axis=1)
     combined['Headcount']=pd.to_numeric(combined['Headcount'])
     # combined=combined.groupby(['Yr.','Per.','Project'])['Headcount'].head(2).sum()
     # combined=combined.reset_index()
-    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Project'])['Headcount'].sum().reset_index()
+    # st.write('COMBINED This is combined what employee or description will i take',combined.head())
+    combined=combined.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Project','Description','Category'])['Headcount'].sum().reset_index()
     combined = combined.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Headcount'], ascending=[True,True,True,True,True,False])
     combined['calendar_year']=combined['calendar_year']+2000
     combined=combined.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
@@ -526,10 +555,26 @@ def headcount_function(ee,UK,Mauve):
     # combined['date']=combined['date'].dt.to_period('m')
     return combined
 
+# def headcount_detail_analysis(combined):
+#     combined['Headcount']=pd.to_numeric(combined['Headcount'])
+
+
 def pivot_headcount_dept(x):
     summary= pd.pivot_table(x, values='Headcount',index=['Department'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
     summary = summary.sort_values(by=['All'],ascending=False)
     summary=summary.reset_index().set_index('Department')
+    return summary
+
+def pivot_headcount_category(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['Category'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Category')
+    return summary
+
+def pivot_headcount_ee(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['Employee'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Employee')
     return summary
 
 def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):

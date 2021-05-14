@@ -16,18 +16,21 @@ final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,mon
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
-test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,acc_schedule_find_monthly,test_gp_by_project_monthly,
+test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,
+acc_schedule_find_monthly,test_gp_by_project_monthly,pivot_headcount_category,bbf_employees,pivot_headcount_ee,
 )
 
 st.set_page_config(layout="wide")
 
-st.write('CLEAN UP THE TESTS AND RE-RUN THEN CHECK EXPORT TO EXCEL')
+st.write('Only running 2021 numbers for the minute to debug and speed up')
+st.write('Check UK numbers in May as have 36 for March and April')
+st.write('Still doesnt look right march and april look too big....')
 
 
 st.write('Select start of forecast period below and actual')
 with st.echo():
-    start_forecast_period_resourcing_tool='2021-04-01 00:00:00'
-    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_07.xlsx'
+    start_forecast_period_resourcing_tool='2021-05-01 00:00:00'
+    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_08.xlsx'
 
 data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2016_19='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
@@ -45,16 +48,19 @@ with st.echo():
     Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 cached_2021=load_ledger_data(data_2021).copy()
-cached_2020=load_ledger_data(data_2020).copy()
-cached_2016_19=load_ledger_data(data_2016_19).copy()
-cached_2014_15=load_ledger_data(data_2014_15).copy()
-cached_2016_19=pd.concat([cached_2016_19,cached_2014_15])
+# cached_2020=load_ledger_data(data_2020).copy()
+# cached_2016_19=load_ledger_data(data_2016_19).copy()
+# cached_2014_15=load_ledger_data(data_2014_15).copy()
+# cached_2016_19=pd.concat([cached_2016_19,cached_2014_15])
 
 NL_Data_21=load_data(cached_2021,coding_acc_schedule) # MUTATION
-NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
-NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
+# NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
+# NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
 
-consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
+with st.echo():
+    st.write('For Ease of loading no data before 2021 is loaded')
+    # consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
+    consol_headcount_data=NL_Data_21.copy()
 
 # # https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
 # # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
@@ -69,11 +75,31 @@ with st.beta_expander('Actual Headcount for 940'):
 
 with st.beta_expander('Overall Headcount to date broken down by Department'):
     data_graphing_actual_to_date=headcount_921_940(consol_headcount_data)
+    # st.write('consol headcount data',consol_headcount_data)
+
+    # st.write('test data actual',data_graphing_actual_to_date.head())
+    check=data_graphing_actual_to_date.groupby(['date'])['Headcount'].sum()
+    # st.write('checking total', check)
+    march=data_graphing_actual_to_date[data_graphing_actual_to_date['month']==3]
+    # grouped_march=march.groupby(['Description','Employee - Ext. Code'])['Headcount'].sum().reset_index()
+    # grouped_march=march.groupby(['Description','Category'])['Headcount'].sum().reset_index()
+    # st.write(grouped_march.sort_values(by='Description'))
+    # st.write('check this total matches',grouped_march['Headcount'].sum())
+    # actual_pivot_category=pivot_headcount_category(data_graphing_actual_to_date)
+    # st.write('category',format_dataframe(actual_pivot_category))
+    
     actual_pivot=pivot_headcount_dept(data_graphing_actual_to_date)
     st.write(format_dataframe(actual_pivot))
     st.markdown(get_table_download_link(format_dataframe(actual_pivot)), unsafe_allow_html=True)
     check_dept_headcount = actual_pivot.loc['All','All']
     # st.write('If True passes checked', check_dept_headcount==check_project_headcount)
+
+with st.beta_expander('Overall Headcount to date broken down by Location of Staff'):
+    actual_pivot_category=pivot_headcount_category(data_graphing_actual_to_date)
+    st.write('category',format_dataframe(actual_pivot_category))
+    st.write('data', bbf_employees(consol_headcount_data))
+    bbf_ee=pivot_headcount_ee(bbf_employees(consol_headcount_data))
+    st.write(format_dataframe(bbf_ee))
 
 with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)
