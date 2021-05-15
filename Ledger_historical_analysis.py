@@ -97,9 +97,15 @@ with st.beta_expander('Overall Headcount to date broken down by Department'):
 with st.beta_expander('Overall Headcount to date broken down by Location of Staff'):
     actual_pivot_category=pivot_headcount_category(data_graphing_actual_to_date)
     st.write('category',format_dataframe(actual_pivot_category))
-    st.write('data', bbf_employees(consol_headcount_data))
+    data=bbf_employees(consol_headcount_data)
+    data=data.query('`month`==4')
+    test_name=data[data['Employee'].str.contains('Stacey, James')]
+    st.write('Matthew extract',test_name)
+    st.write(test_name.groupby('Jrn. No.')['Headcount'].sum())
+    st.write('data', bbf_employees(consol_headcount_data).head())
     bbf_ee=pivot_headcount_ee(bbf_employees(consol_headcount_data))
-    st.write(format_dataframe(bbf_ee))
+    st.write('this is bbf employees',format_dataframe(bbf_ee))
+    st.write('how do i show rows greater than 1 so that errors are fixed')
 
 with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)

@@ -356,7 +356,7 @@ def company_ee_project(x):
     x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
     x= x.query('`Employee - Ext. Code`>0.5')
     x = x.query('`Src. Account`!="BUK02"')
-    x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code'])['Journal Amount'].transform('sum')
+    x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code','Jrn. No.'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
     x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
     return x
@@ -505,11 +505,18 @@ def headcount_921_940(data):
     group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
     ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
     return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
 def bbf_employees(data):
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
     ['Journal Amount','Employee','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007470"') # pension might need to fix in may will see
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007465"') # pension might need to fix in may will see
+
     employee_921=company_ee_project(sch_921_ee).reset_index()
     employee_921['Headcount']=pd.to_numeric(employee_921['Headcount'])
     employee_921['calendar_year']=employee_921['calendar_year']+2000

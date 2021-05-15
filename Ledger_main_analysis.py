@@ -11,7 +11,7 @@ company_ee_project,combined_921_headcount,pivot_headcount)
 
 st.set_page_config(layout="wide")
 pd.set_option('use_inf_as_na', True)
-current_month_index=6
+current_month_index=7
 select_budget_forecast=2
 
 Budget_2020_Raw, F1_2020_Raw, F2_2020_Raw, F3_2020_Raw = [pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2021.xlsx',sheet_name=x) 
@@ -24,7 +24,7 @@ Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project
 @st.cache
 def load_ledger_data():
     # return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
-    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_07.xlsx')
+    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_08.xlsx')
 NL = load_ledger_data().copy()
 # st.write(NL[NL['Project'].str.contains('Eureka')])
 # st.write(Budget_2020_Raw.head(10))
@@ -148,7 +148,7 @@ with st.beta_expander('Click to see Company YTD and Month PL'):
         first_slot=st.beta_container()
         first_slot.dataframe ( Budget_Actual.actual_v_budget_ytd() )
         if st.checkbox('Would you like to see the Forecast included in YTD above?'):
-            forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=0,key='NL_YTD') # use index to default
+            forecast_selection = st.selectbox("Which Forecast do you want to see?",options = ["Forecast Q1", "Forecast Q2","Forecast Q3"],index=1,key='NL_YTD') # use index to default
             first_slot.dataframe (Budget_Actual.actual_v_forecast_ytd(forecast_selection))
 
     with col2:
