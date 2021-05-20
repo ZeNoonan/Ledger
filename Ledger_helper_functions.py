@@ -507,33 +507,35 @@ def headcount_921_940(data):
     ['Journal Amount','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
-    return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
-def bbf_employees(data):
-    sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
-    ['Journal Amount','Employee','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
-    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
-    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
+    # I COPIED THIS FROM BBF_EE FUNCTION BELOW
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007470"') # pension might need to fix in may will see
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007465"') # pension might need to fix in may will see
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF146', 3, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF144', 1, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF142', 12, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_year']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF142', 20, sch_921_ee['calendar_year'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF141', 11, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_year']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF141', 20, sch_921_ee['calendar_year'])
+    sch_921_ee['calendar_month']=pd.to_numeric(sch_921_ee['calendar_month'])
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SM-BBF1CN"') # J Reeves credit note and invoice
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SMBBF139"') # J Reeves credit note and invoice
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
 
-    employee_921=company_ee_project(sch_921_ee).reset_index()
-    employee_921['Headcount']=pd.to_numeric(employee_921['Headcount'])
-    employee_921['calendar_year']=employee_921['calendar_year']+2000
-    employee_921=employee_921.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
-    employee_921['day']=1
-    employee_921['date']=pd.to_datetime(employee_921[['year','month','day']],infer_datetime_format=True)
-    return employee_921
-
-def format_dataframe(x):
-    # return x.style.format("{:,.0f}",na_rep="-")
-    return x.style.format("{:,.2f}",na_rep="-")
-    # .format(background_gradient(cmap='Blues'))
+    return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
 def headcount_function(ee,UK,Mauve):
     # employee_921=company_ee_project(ee).drop(['Employee - Ext. Code'], axis=1).reset_index()
     employee_921=company_ee_project(ee).reset_index()
     employee_921['Category']='BBF'
+    # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF146', 3, employee_921['calendar_month'])
+    # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF144', 1, employee_921['calendar_month'])
+    # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF142', 12, employee_921['calendar_month'])
+    # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF141', 11, employee_921['calendar_month'])
+
+
+
     # st.write('BBF description employee', employee_921.head())
     # st.write(UK)
     # UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
@@ -561,6 +563,41 @@ def headcount_function(ee,UK,Mauve):
     # combined['date'] = pd.to_datetime(combined['date'], format='%Y-%m-%d')
     # combined['date']=combined['date'].dt.to_period('m')
     return combined
+
+def bbf_employees(data):
+    sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
+    ['Journal Amount','Employee','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007470"') # pension might need to fix in may will see
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007465"') # pension might need to fix in may will see
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF146', 3, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF144', 1, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF142', 12, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_year']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF142', 20, sch_921_ee['calendar_year'])
+    sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF141', 11, sch_921_ee['calendar_month'])
+    sch_921_ee['calendar_year']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF141', 20, sch_921_ee['calendar_year'])
+    sch_921_ee['calendar_month']=pd.to_numeric(sch_921_ee['calendar_month'])
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SM-BBF1CN"') # J Reeves credit note and invoice
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SMBBF139"') # J Reeves credit note and invoice
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
+
+
+    employee_921=company_ee_project(sch_921_ee).reset_index()
+    employee_921['Headcount']=pd.to_numeric(employee_921['Headcount'])
+    employee_921['calendar_year']=employee_921['calendar_year']+2000
+    employee_921=employee_921.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    employee_921['day']=1
+    employee_921['date']=pd.to_datetime(employee_921[['year','month','day']],infer_datetime_format=True)
+    return employee_921
+
+def format_dataframe(x):
+    # return x.style.format("{:,.0f}",na_rep="-")
+    return x.style.format("{:,.2f}",na_rep="-")
+    # .format(background_gradient(cmap='Blues'))
+
+
 
 # def headcount_detail_analysis(combined):
 #     combined['Headcount']=pd.to_numeric(combined['Headcount'])

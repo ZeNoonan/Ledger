@@ -95,14 +95,16 @@ with st.beta_expander('Overall Headcount to date broken down by Department'):
     # st.write('If True passes checked', check_dept_headcount==check_project_headcount)
 
 with st.beta_expander('Overall Headcount to date broken down by Location of Staff'):
-    actual_pivot_category=pivot_headcount_category(data_graphing_actual_to_date)
+    actual_pivot_category=pivot_headcount_category(headcount_921_940(consol_headcount_data))
+    # st.write('consol headcount data',consol_headcount_data.head())
     st.write('category',format_dataframe(actual_pivot_category))
     data=bbf_employees(consol_headcount_data)
-    data=data.query('`month`==4')
-    test_name=data[data['Employee'].str.contains('Stacey, James')]
-    st.write('Matthew extract',test_name)
+    data=data.query('`month`==1')
+    # st.write('checking data of month',data.head())
+    test_name=data[data['Employee'].str.contains('vanA')]
+    # st.write('employee issue extract',test_name)
     st.write(test_name.groupby('Jrn. No.')['Headcount'].sum())
-    st.write('data', bbf_employees(consol_headcount_data).head())
+    # st.write('data', bbf_employees(consol_headcount_data).head())
     bbf_ee=pivot_headcount_ee(bbf_employees(consol_headcount_data))
     st.write('this is bbf employees',format_dataframe(bbf_ee))
     st.write('how do i show rows greater than 1 so that errors are fixed')
