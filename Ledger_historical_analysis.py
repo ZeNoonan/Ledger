@@ -16,8 +16,9 @@ final_headcount,create_pivot_comparing_production_headcount,load_ledger_data,mon
 headcount_actual_plus_forecast,headcount_actual_plus_forecast_with_subtotal,data_for_graphing, group_by_monthly_by_production, acc_schedule_find,
 test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcount_921_940,format_dataframe,pivot_headcount_dept,forecast_resourcing_dept,
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
-test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,
-acc_schedule_find_monthly,test_gp_by_project_monthly,pivot_headcount_category,bbf_employees,pivot_headcount_ee,
+test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,mauve_staff,pivot_headcount_mauve,
+acc_schedule_find_monthly,test_gp_by_project_monthly,pivot_headcount_category,bbf_employees,pivot_headcount_ee,clean_wrangle_headcount,uk_staff,
+pivot_headcount_uk,
 )
 
 st.set_page_config(layout="wide")
@@ -95,19 +96,36 @@ with st.beta_expander('Overall Headcount to date broken down by Department'):
     # st.write('If True passes checked', check_dept_headcount==check_project_headcount)
 
 with st.beta_expander('Overall Headcount to date broken down by Location of Staff'):
-    actual_pivot_category=pivot_headcount_category(headcount_921_940(consol_headcount_data))
+    # actual_pivot_category=pivot_headcount_category(headcount_921_940(consol_headcount_data))
     # st.write('consol headcount data',consol_headcount_data.head())
-    st.write('category',format_dataframe(actual_pivot_category))
-    data=bbf_employees(consol_headcount_data)
-    data=data.query('`month`==1')
-    # st.write('checking data of month',data.head())
-    test_name=data[data['Employee'].str.contains('vanA')]
-    # st.write('employee issue extract',test_name)
-    st.write(test_name.groupby('Jrn. No.')['Headcount'].sum())
+    # st.write('category',format_dataframe(actual_pivot_category))
+    # data=bbf_employees(consol_headcount_data)
+    # data=data.query('`month`==1')
+    # # st.write('checking data of month',data.head())
+    # test_name=data[data['Employee'].str.contains('vanA')]
+    # # st.write('employee issue extract',test_name)
+    # st.write(test_name.groupby('Jrn. No.')['Headcount'].sum())
     # st.write('data', bbf_employees(consol_headcount_data).head())
-    bbf_ee=pivot_headcount_ee(bbf_employees(consol_headcount_data))
+    cleaned_data=clean_wrangle_headcount(consol_headcount_data)
+    bbf_headcount_data=bbf_employees(cleaned_data)
+    # st.write('bbf employees data check for Category', bbf_headcount_data.head())
+    # st.write('checking bbf headcount data',bbf_headcount_data.head())
+    bbf_ee=pivot_headcount_ee(bbf_headcount_data)
+    # st.write('this is bbf_ee',bbf_ee.head())
     st.write('this is bbf employees',format_dataframe(bbf_ee))
-    st.write('how do i show rows greater than 1 so that errors are fixed')
+    mauve_staff= mauve_staff(cleaned_data)
+    # st.write('data mauve staff', mauve_staff)
+    # mauve_pivot=pivot_headcount_category(mauve_staff)
+    # st.write('mauve pivot', mauve_pivot)
+    st.write('mauve breakdown', pivot_headcount_mauve(mauve_staff))
+    uk_staff = uk_staff(cleaned_data)
+    # st.write('uk data', uk_staff.head())
+    st.write(pivot_headcount_uk(uk_staff))
+    all_staff=pd.concat([bbf_headcount_data,mauve_staff,uk_staff])
+    # st.write('all staff', all_staff.head())
+    all_staff_pivot = format_dataframe(pivot_headcount_category(all_staff))
+    st.write(all_staff_pivot)
+    # st.write('how do i show rows greater than 1 so that errors are fixed')
 
 with st.beta_expander('Overall Headcount by Dept for Actual + Forecast'):
     forecast_pivot=test_forecast_resourcing_dept(forecast_test,forecast_project_mapping,start_forecast_period_resourcing_tool)

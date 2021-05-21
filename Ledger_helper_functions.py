@@ -335,31 +335,14 @@ def gp_nl_budget_comp(nl,budget):
 def get_total_by_month(x):
     return x.sum().reset_index().rename(columns={0:'Total_Amount_by_Month_','Per.':'Month'}).set_index('Month').transpose()
 
-def credit_notes_resolve(x):
 
-    credit_notes=x['Jrn. No.'].str.contains('CN|CR')
-    filter_credit_notes=x[credit_notes]
-    filter_non_credit_notes=x[~credit_notes]
-    non_UK_contractor_921=pd.concat([filter_credit_notes,filter_non_credit_notes])
-    non_UK_contractor_921['Payroll_Amt'] = non_UK_contractor_921.groupby (['Jrn. No.'])['Journal Amount'].transform('sum')
-    non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
-    return non_UK_contractor_921
 
 def UK_clean_921(x):
     x['Payroll_Amt'] = x.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
     x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
     return x
 
-def company_ee_project(x):
-    # x['Employee']=x['Employee'].replace('" "','',regex=True).astype(float)
-    # x['Employee']=x['Employee'].str.replace(" ","")
-    x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
-    x= x.query('`Employee - Ext. Code`>0.5')
-    x = x.query('`Src. Account`!="BUK02"')
-    x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code','Jrn. No.'])['Journal Amount'].transform('sum')
-    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
-    x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
-    return x
+
 
 
 def combined_921_headcount(ee,UK,Mauve):
@@ -509,6 +492,8 @@ def headcount_921_940(data):
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
 
     # I COPIED THIS FROM BBF_EE FUNCTION BELOW
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="X00007362"') # reversal of above accrual
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007470"') # pension might need to fix in may will see
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007465"') # pension might need to fix in may will see
     sch_921_ee['calendar_month']=np.where(sch_921_ee['Jrn. No.']=='9SM-BBF146', 3, sch_921_ee['calendar_month'])
@@ -522,7 +507,7 @@ def headcount_921_940(data):
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SMBBF139"') # J Reeves credit note and invoice
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
-
+    # st.write('TESTING BBF EMPLOYEES WITHIN headcount 921_940 function',sch_921_ee.head())
     return headcount_function(sch_921_ee,group_UK,group_no_UK)   
 
 def headcount_function(ee,UK,Mauve):
@@ -533,9 +518,17 @@ def headcount_function(ee,UK,Mauve):
     # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF144', 1, employee_921['calendar_month'])
     # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF142', 12, employee_921['calendar_month'])
     # employee_921['calendar_month']=np.where(employee_921['Jrn. No.']=='9SM-BBF141', 11, employee_921['calendar_month'])
-
-
-
+    # test_ee = employee_921.copy()
+    # st.write('TESTING the category within headcount_function should be same as below')
+    # test_ee['Headcount']=pd.to_numeric(test_ee['Headcount'])
+    # test_ee=test_ee.groupby(['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Project','Description','Category'])['Headcount'].sum().reset_index()
+    # test_ee = test_ee.sort_values(by=['calendar_year','calendar_month','Acc_Schedule','Department','Project_Name','Headcount'], ascending=[True,True,True,True,True,False])
+    # test_ee['calendar_year']=test_ee['calendar_year']+2000
+    # test_ee=test_ee.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    # test_ee['day']=1
+    # test_ee['date']=pd.to_datetime(test_ee[['year','month','day']],infer_datetime_format=True)
+    # st.write(pivot_headcount_category(test_ee))
+    # st.write('xxxxxxxxxxxxxxxxxxxxxxxxx')
     # st.write('BBF description employee', employee_921.head())
     # st.write(UK)
     # UK_921=UK_clean_921(UK).drop(['Description'], axis=1).reset_index()
@@ -564,7 +557,7 @@ def headcount_function(ee,UK,Mauve):
     # combined['date']=combined['date'].dt.to_period('m')
     return combined
 
-def bbf_employees(data):
+def clean_wrangle_headcount(data):
     sch_921_ee=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
     ['Journal Amount','Employee','Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Employee - Ext. Code','Acc_Schedule','Project_Name','Department','Description']]
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
@@ -582,9 +575,48 @@ def bbf_employees(data):
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SMBBF139"') # J Reeves credit note and invoice
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
+    return sch_921_ee
+
+def mauve_staff(sch_921):
+    group_supplier=sch_921.groupby(['Src. Account','Jrn. No.','calendar_year','calendar_month','Project','Acc_Schedule','Project_Name','Department','Description'])['Journal Amount'].sum().reset_index()
+    # group_UK = sch_921.query('`Src. Account`=="BUK02"')
+    group_no_UK = group_supplier.query('`Src. Account`!="BUK02"')
+    Mauve_2021=credit_notes_resolve(group_no_UK).reset_index()
+    Mauve_2021['Category']='Mauve'
+    Mauve_2021 = headcount_date_clean(Mauve_2021)
+    return Mauve_2021
+
+def uk_staff(sch_921):
+    group_UK = sch_921.query('`Src. Account`=="BUK02"')
+    UK_921=UK_clean_921(group_UK).reset_index()
+    # st.write(UK_921.head())
+    UK_921['calendar_month']=np.where(UK_921['Jrn. No.']=='BUK0000979', 3, UK_921['calendar_month'])
+    UK_921['Category']='BBF_UK'
+    UK_921 = headcount_date_clean(UK_921)
+    return UK_921
 
 
-    employee_921=company_ee_project(sch_921_ee).reset_index()
+
+# def credit_notes_resolve_updated(x):
+#     credit_notes=x['Jrn. No.'].str.contains('CN|CR')
+#     filter_credit_notes=x[credit_notes]
+#     filter_non_credit_notes=x[~credit_notes]
+#     # non_UK_contractor_921=pd.concat([filter_credit_notes,filter_non_credit_notes])
+#     non_UK_contractor_921['Payroll_Amt'] = filter_non_credit_notes.groupby (['Jrn. No.'])['Journal Amount'].transform('sum')
+#     non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
+#     return non_UK_contractor_921
+
+def credit_notes_resolve(x):
+    # don't understand this function but let's keep going....why add credit and non credit back together using concat
+    credit_notes=x['Jrn. No.'].str.contains('CN|CR')
+    filter_credit_notes=x[credit_notes]
+    filter_non_credit_notes=x[~credit_notes]
+    non_UK_contractor_921=pd.concat([filter_credit_notes,filter_non_credit_notes])
+    non_UK_contractor_921['Payroll_Amt'] = non_UK_contractor_921.groupby (['Jrn. No.'])['Journal Amount'].transform('sum')
+    non_UK_contractor_921['Headcount'] = non_UK_contractor_921['Journal Amount'] / non_UK_contractor_921['Payroll_Amt']
+    return non_UK_contractor_921
+
+def headcount_date_clean(employee_921):
     employee_921['Headcount']=pd.to_numeric(employee_921['Headcount'])
     employee_921['calendar_year']=employee_921['calendar_year']+2000
     employee_921=employee_921.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
@@ -592,16 +624,25 @@ def bbf_employees(data):
     employee_921['date']=pd.to_datetime(employee_921[['year','month','day']],infer_datetime_format=True)
     return employee_921
 
+def bbf_employees(employee_921):
+    employee_921=company_ee_project(employee_921).reset_index()
+    employee_921['Category']='BBF'
+    employee_921 = headcount_date_clean(employee_921)
+    return employee_921
+
+
+
+def company_ee_project(x):
+    x['Employee - Ext. Code'] = pd.to_numeric(x['Employee - Ext. Code'])
+    x= x.query('`Employee - Ext. Code`>0.5')
+    x = x.query('`Src. Account`!="BUK02"')
+    x['Payroll_Amt'] = x.groupby (['calendar_year','calendar_month','Employee - Ext. Code','Jrn. No.'])['Journal Amount'].transform('sum')
+    x['Headcount'] = x['Journal Amount'] / x['Payroll_Amt']
+    x=x.replace([np.inf, -np.inf], np.nan) # due to 0 dividing by the journal amount
+    return x
+
 def format_dataframe(x):
-    # return x.style.format("{:,.0f}",na_rep="-")
     return x.style.format("{:,.2f}",na_rep="-")
-    # .format(background_gradient(cmap='Blues'))
-
-
-
-# def headcount_detail_analysis(combined):
-#     combined['Headcount']=pd.to_numeric(combined['Headcount'])
-
 
 def pivot_headcount_dept(x):
     summary= pd.pivot_table(x, values='Headcount',index=['Department'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
@@ -620,6 +661,19 @@ def pivot_headcount_ee(x):
     summary = summary.sort_values(by=['All'],ascending=False)
     summary=summary.reset_index().set_index('Employee')
     return summary
+
+def pivot_headcount_mauve(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['Jrn. No.'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Jrn. No.')
+    return summary
+
+def pivot_headcount_uk(x):
+    summary= pd.pivot_table(x, values='Headcount',index=['Description'], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+    summary = summary.sort_values(by=['All'],ascending=False)
+    summary=summary.reset_index().set_index('Description')
+    return summary
+
 
 def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
     x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
