@@ -575,6 +575,7 @@ def clean_wrangle_headcount(data):
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="9SMBBF139"') # J Reeves credit note and invoice
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
     sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
+    sch_921_ee=sch_921_ee.query('`Jrn. No.`!="000007459"') # Luke reclass in April 21 from IT to Pipeline
     return sch_921_ee
 
 def mauve_staff(sch_921):
