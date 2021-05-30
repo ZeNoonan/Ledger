@@ -24,8 +24,6 @@ pivot_headcount_uk,
 st.set_page_config(layout="wide")
 
 st.write('Only running 2021 numbers for the minute to debug and speed up')
-st.write('Check UK numbers in May as have 36 for March and April')
-st.write('Still doesnt look right march and april look too big....')
 
 
 st.write('Select start of forecast period below and actual')
@@ -49,19 +47,19 @@ with st.echo():
     Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 cached_2021=load_ledger_data(data_2021).copy()
-# cached_2020=load_ledger_data(data_2020).copy()
-# cached_2016_19=load_ledger_data(data_2016_19).copy()
+cached_2020=load_ledger_data(data_2020).copy()
+cached_2016_19=load_ledger_data(data_2016_19).copy()
 # cached_2014_15=load_ledger_data(data_2014_15).copy()
 # cached_2016_19=pd.concat([cached_2016_19,cached_2014_15])
 
 NL_Data_21=load_data(cached_2021,coding_acc_schedule) # MUTATION
-# NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
-# NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
+NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
+NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
 
 with st.echo():
     st.write('For Ease of loading no data before 2021 is loaded')
-    # consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
-    consol_headcount_data=NL_Data_21.copy()
+    consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
+    # consol_headcount_data=NL_Data_21.copy()
 
 # # https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
 # # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  

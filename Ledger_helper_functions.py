@@ -424,7 +424,7 @@ def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_perio
 
 
 
-# @st.cache
+@st.cache
 def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
     return pd.concat([NL_Data_16_19,NL_Data_20,NL_Data_21],ignore_index=True)
 
