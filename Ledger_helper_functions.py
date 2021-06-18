@@ -695,10 +695,10 @@ def forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_re
 
 def test_forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
     # st.write(x)
-    x= pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','division':'Department'})
+    x= pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','Division':'Department'})
     # st.write('full data for forecast is dept missing', x.head())
     # st.write(x[x['Department'].isnull()]) # ALWAYS CHECK FOR NAN VALUES
-    x['Department'] = x['Department'].replace({np.nan:'CG'})
+    # x['Department'] = x['Department'].replace({np.nan:'CG'})
     # st.write(x[x['Department'].isnull()])
     x.columns= x.columns.astype(str)
     col = x.pop("Department")
