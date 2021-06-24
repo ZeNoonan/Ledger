@@ -18,12 +18,13 @@ test_gp_by_project,gp_percent_by_project,gp_revenue_concat,format_table,headcoun
 test_forecast_resourcing_dept,new_headcount_actual_plus_forecast, data_for_graphing_dept,headcount_concat,forecast_resourcing_test,to_excel,
 test_pivot_headcount,get_table_download_link,chart_gp,chart_area_headcount,data_for_graphing_overall,chart_gp_test,mauve_staff,pivot_headcount_mauve,
 acc_schedule_find_monthly,test_gp_by_project_monthly,pivot_headcount_category,bbf_employees,pivot_headcount_ee,clean_wrangle_headcount,uk_staff,
-pivot_headcount_uk,
+pivot_headcount_uk,df_concat_20_21
 )
 
 st.set_page_config(layout="wide")
 
 st.write('Only running 2021 numbers for the minute to debug and speed up')
+st.header('check the headcount for month 1 to end of production to fix up that data')
 
 
 st.write('Select start of forecast period below and actual')
@@ -32,6 +33,7 @@ with st.echo():
     data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_09.xlsx'
 
 data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
+data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
 data_2016_19='C:/Users/Darragh/Documents/Python/Work/Data/NL_2016_2019.xlsx'
 data_2014_15='C:/Users/Darragh/Documents/Python/Work/Data/NL_2014_2015.xlsx'
 # forecast_resourcing_file=('C:/Users/Darragh/Documents/Python/Work/Data/Resource_Planner_v0005_2021-03-18 11_14_58.xlsx')
@@ -49,30 +51,33 @@ with st.echo():
     Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 cached_2021=load_ledger_data(data_2021).copy()
-# cached_2020=load_ledger_data(data_2020).copy()
+cached_2020=load_ledger_data(data_2020).copy()
+cached_2019=load_ledger_data(data_2019).copy()
 # cached_2016_19=load_ledger_data(data_2016_19).copy()
 # cached_2014_15=load_ledger_data(data_2014_15).copy()
 # cached_2016_19=pd.concat([cached_2016_19,cached_2014_15])
 
 NL_Data_21=load_data(cached_2021,coding_acc_schedule) # MUTATION
-# NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
+NL_Data_20=load_data(cached_2020,coding_acc_schedule) # MUTATION
+NL_Data_16_19=load_16_19_clean(cached_2019,coding_acc_schedule) # MUTATION
 # NL_Data_16_19=load_16_19_clean(cached_2016_19,coding_acc_schedule) # MUTATION
 
 with st.echo():
     st.write('For Ease of loading no data before 2021 is loaded')
-    # consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
-    consol_headcount_data=NL_Data_21.copy()
+    consol_headcount_data=df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21).copy()
+    # consol_headcount_data=df_concat_20_21(NL_Data_20,NL_Data_21).copy()
+    # consol_headcount_data=NL_Data_21.copy()
 
 # # https://stackoverflow.com/questions/14745022/how-to-split-a-dataframe-string-column-into-two-columns
 # # https://stackoverflow.com/questions/49795825/skip-nan-and-shift-elements-in-a-pandas-dataframe-row  
 
-with st.beta_expander('Actual Headcount for 940'):
-    new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
-    prelim_data=headcount_921_940(consol_headcount_data)
-    data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
-    data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
-    st.write(format_dataframe(pivot_headcount(data_headcount_940)))
-    st.markdown(get_table_download_link(pivot_headcount(data_headcount_940)), unsafe_allow_html=True)
+# with st.beta_expander('Actual Headcount for 940'):
+new_headcount=pivot_headcount_dept(headcount_921_940(consol_headcount_data))
+prelim_data=headcount_921_940(consol_headcount_data)
+data_headcount_921=prelim_data.query('`Acc_Schedule`==921')
+data_headcount_940=prelim_data.query('`Acc_Schedule`==940')
+st.write(format_dataframe(pivot_headcount(data_headcount_940)))
+st.markdown(get_table_download_link(pivot_headcount(data_headcount_940)), unsafe_allow_html=True)
 
 
 
@@ -206,18 +211,26 @@ with st.beta_expander('Historical GP Analysis'):
     st.markdown(get_table_download_link(revenue_gp_gp_percent_table), unsafe_allow_html=True)
     # st.altair_chart(chart_gp(graphing_gp),use_container_width=True)
     st.altair_chart(chart_gp_test(graphing_gp),use_container_width=True)
+    st.write('OG: had the Develop Exps write off in Aug 2020 recharged from 9S USA')
 
 with st.beta_expander('Historical GP Analysis by Month'):
     production_revenue_monthly=(acc_schedule_find_monthly(data_2016_current, 'Revenue'))
-    st.write(production_revenue_monthly.head())
+    # st.write(production_revenue_monthly.head())
     production_gross_profit_monthly =test_gp_by_project_monthly(data_2016_current)
-    st.write(production_gross_profit_monthly.head())
-    production_gp_percent_monthly=gp_percent_by_project(production_gross_profit_monthly,production_revenue_monthly)
-    st.write(production_gp_percent_monthly.head())
+    st.write('This is the Gross Profit by Month for top projects but filtered by:')
+    # st.write(production_gross_profit_monthly.head())
     project_names_list =graphing_gp['Project_Name'].to_list()
+    index_production_gross_profit_monthly=production_gross_profit_monthly.reset_index()
+    top_production_gross_profit_monthly=index_production_gross_profit_monthly[index_production_gross_profit_monthly['Project_Name'].isin(project_names_list)]
+    
+    st.write(top_production_gross_profit_monthly[top_production_gross_profit_monthly['Project_Name'].str.contains('Eureka')])
+    production_gp_percent_monthly=gp_percent_by_project(production_gross_profit_monthly,production_revenue_monthly)
+    # st.write(production_gp_percent_monthly.head())
+    
     st.write(project_names_list)
     production_gp_percent_monthly=production_gp_percent_monthly.reset_index()
-    st.write(production_gp_percent_monthly.head())
+    # st.write(production_gp_percent_monthly.head())
     rslt_df = production_gp_percent_monthly[production_gp_percent_monthly['Project_Name'].isin(project_names_list)] 
-    st.write(rslt_df)
+    st.write('this is GP percent by month filtered by:')
+    st.write(rslt_df[rslt_df['Project_Name'].str.contains('Eureka')])
     st.write("need to look at rolling GP percent analysis, think that's what I want to do look at main analysis")

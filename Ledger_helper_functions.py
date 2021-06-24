@@ -428,6 +428,11 @@ def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_perio
 def df_concat(NL_Data_16_19,NL_Data_20,NL_Data_21):
     return pd.concat([NL_Data_16_19,NL_Data_20,NL_Data_21],ignore_index=True)
 
+@st.cache
+def df_concat_20_21(NL_Data_20,NL_Data_21):
+    return pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
+
+
 def headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
     return pd.concat([actual,forecast_headcount_direct],axis=1)
@@ -464,6 +469,7 @@ def test_gp_by_project_monthly(data):
 
 def gp_percent_by_project(production_gross_profit,production_revenue):
     # gp_percent=production_gross_profit['Gross_Profit'] / production_revenue['Revenue']
+    # gp_percent= production_gross_profit.divide(production_revenue)*100
     gp_percent= production_gross_profit.divide(production_revenue,fill_value=0)*100 # Can I get divdie to recognise the different columsn
     gp_percent=gp_percent.replace([np.inf, -np.inf], np.nan).fillna(0)
     return gp_percent
@@ -788,7 +794,7 @@ def chart_gp_test(x):
         color='Project_Name',
         tooltip='Project_Name',
     ) #https://stackoverflow.com/questions/65503289/altair-selection-error-javascript-error-duplicate-signal-name-selector074-i
-    text_on_base=base.mark_text(align='left',baseline='middle',dx=10,opacity=0.5).encode(text='Project_Name')
+    text_on_base=base.mark_text(align='left',baseline='middle',dx=10,opacity=0.8).encode(text='Project_Name')
     return base.interactive() + text_on_base
 
 def chart_gp_test_1(x):
