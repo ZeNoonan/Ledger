@@ -44,6 +44,9 @@ def nl_raw_clean_file(x, coding_acc_schedule):
     x['calendar_year'] = np.where((x['Per.'] > 4.1), x['Yr.'], x['Yr.']-1)
     x['calendar_year']=x['calendar_year']+2000
     x=x.rename(columns={'calendar_year':'year', 'calendar_month':'month'})
+    x['month']=np.where(x['Jrn. No.']=='BUK0000979', 3, x['month']) # CLEAN UK SIDE WHERE MARCH AND APRIL WERE ENTERED IN SAME PERIOD
+    x['month']=np.where(x['Jrn. No.']=='BUK0000913', 4, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='BUK0000914', 4, x['month'])
     x['day']=1
     x['date']=pd.to_datetime(x[['year','month','day']],infer_datetime_format=True)
     # x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
@@ -97,7 +100,8 @@ def pivot_report(bbf_headcount_data,filter='Employee'):
     summary = summary.sort_values(by=['All'],ascending=False)
     return summary.reset_index().set_index(filter)
 # st.write('paye data')
-st.write(pivot_report(bbf_headcount_data,filter='Employee'))
+with st.beta_expander('BBF Staff by Employee by Month'):
+    st.write(pivot_report(bbf_headcount_data,filter='Employee'))
 # david = headcount_paye[ (headcount_paye['Employee'].str.contains('Camle') &( headcount_paye['month']==12) &( headcount_paye['year']==2018) ) ]
 # st.write(david)
 
@@ -123,7 +127,7 @@ def clean_wrangle_headcount(data):
     x=x.query('`Jrn. No.`!="000007459"') # Luke reclass in April 21 from IT to Pipeline
     return x
 
-mauve_data=clean_wrangle_headcount(consol_headcount_data)
+cleaned_data=clean_wrangle_headcount(consol_headcount_data)
 
 def mauve_staff(x):
     group_supplier=x.groupby(['Src. Account','Jrn. No.','year','month','Project','Acc_Schedule',
@@ -148,8 +152,22 @@ def mauve_staff(x):
     # mauve = headcount_date_clean(Mauve_2021)
     return mauve
 
-mauve=mauve_staff(mauve_data)
+mauve=mauve_staff(cleaned_data)
 # st.write(mauve)
-st.write(mauve[mauve['Src. Account']==''])
+st.write(mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
 mauve_pivot=pivot_report(mauve,filter='Jrn. No.')
-st.write(mauve_pivot)
+with st.beta_expander('Mauve Staff by Invoice Number by Month'):
+    st.write(mauve_pivot)
+
+group_UK = cleaned_data.query('`Src. Account`=="BUK02"')
+st.write(group_UK[(group_UK['month']==4) & (group_UK['year']==2020)] )
+# st.write(group_UK[group_UK['Description'].str.contains('BBF UK recharge for Leigh Fieldhouse Payroll April 20')])
+# st.write(group_UK[group_UK['Jrn. No.'].str.contains('000914')])
+group_UK['Payroll_Amt'] = group_UK.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
+group_UK['Headcount'] = group_UK['Journal Amount'] / group_UK['Payroll_Amt']
+# group_UK['month']=np.where(group_UK['Jrn. No.']=='BUK0000979', 3, group_UK['month'])
+group_UK['Category']='BBF_UK'
+group_UK['Headcount']=pd.to_numeric(group_UK['Headcount'])
+uk_pivot=pivot_report(group_UK,filter='Description')
+with st.beta_expander('UK Staff by Description by Month'):
+    st.write(uk_pivot)
