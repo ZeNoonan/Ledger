@@ -47,6 +47,7 @@ def nl_raw_clean_file(x, coding_acc_schedule):
     x['month']=np.where(x['Jrn. No.']=='BUK0000979', 3, x['month']) # CLEAN UK SIDE WHERE MARCH AND APRIL WERE ENTERED IN SAME PERIOD
     x['month']=np.where(x['Jrn. No.']=='BUK0000913', 4, x['month'])
     x['month']=np.where(x['Jrn. No.']=='BUK0000914', 4, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='BUK0000903', 3, x['month'])
     x['day']=1
     x['date']=pd.to_datetime(x[['year','month','day']],infer_datetime_format=True)
     # x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
@@ -125,6 +126,8 @@ def clean_wrangle_headcount(data):
     x=x.query('`Jrn. No.`!="000007163"') # Malcolm vanA reclass
     x=x.query('`Jrn. No.`!="000007208"') # Malcolm vanA deposit
     x=x.query('`Jrn. No.`!="000007459"') # Luke reclass in April 21 from IT to Pipeline
+    x=x.query('`Jrn. No.`!="BUK00009IN"')
+    x=x.query('`Jrn. No.`!="BUK00009CN"')
     return x
 
 cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -160,7 +163,7 @@ with st.beta_expander('Mauve Staff by Invoice Number by Month'):
     st.write(mauve_pivot)
 
 group_UK = cleaned_data.query('`Src. Account`=="BUK02"')
-st.write(group_UK[(group_UK['month']==4) & (group_UK['year']==2020)] )
+# st.write(group_UK[(group_UK['month']==12) & (group_UK['year']==2020)] )
 # st.write(group_UK[group_UK['Description'].str.contains('BBF UK recharge for Leigh Fieldhouse Payroll April 20')])
 # st.write(group_UK[group_UK['Jrn. No.'].str.contains('000914')])
 group_UK['Payroll_Amt'] = group_UK.groupby (['Jrn. No.','Description'])['Journal Amount'].transform('sum')
