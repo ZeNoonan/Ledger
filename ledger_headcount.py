@@ -48,6 +48,40 @@ def nl_raw_clean_file(x, coding_acc_schedule):
     x['month']=np.where(x['Jrn. No.']=='BUK0000913', 4, x['month'])
     x['month']=np.where(x['Jrn. No.']=='BUK0000914', 4, x['month'])
     x['month']=np.where(x['Jrn. No.']=='BUK0000903', 3, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2021', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2770', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2771', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2772', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='1249', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='1250', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='643312', 4, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='647032', 4, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='649352', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='651620', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='657659', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='1115', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='INV1871', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='INV1874', 5, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='3037', 11, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='1600', 11, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='WCCINV2325', 11, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='WCCINV2326', 11, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='WCCINV2367', 11, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2861', 8, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2862', 7, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2918', 9, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='694628', 9, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='696682', 9, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2795', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2796', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='2797', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='1264', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='666802', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='INV1891', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='INV1948', 6, x['month'])
+    x['month']=np.where(x['Jrn. No.']=='WCCINV1910', 6, x['month'])
+
+
     x['day']=1
     x['date']=pd.to_datetime(x[['year','month','day']],infer_datetime_format=True)
     # x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
@@ -102,7 +136,8 @@ def pivot_report(bbf_headcount_data,filter='Employee'):
     return summary.reset_index().set_index(filter)
 # st.write('paye data')
 with st.beta_expander('BBF Staff by Employee by Month'):
-    st.write(pivot_report(bbf_headcount_data,filter='Employee'))
+    bbf_pivot=pivot_report(bbf_headcount_data,filter='Employee')
+    st.write(bbf_pivot)
 # david = headcount_paye[ (headcount_paye['Employee'].str.contains('Camle') &( headcount_paye['month']==12) &( headcount_paye['year']==2018) ) ]
 # st.write(david)
 
@@ -159,6 +194,7 @@ mauve=mauve_staff(cleaned_data)
 # st.write(mauve)
 st.write(mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
 mauve_pivot=pivot_report(mauve,filter='Jrn. No.')
+st.write(mauve[(mauve['month']==7) & (mauve['year']==2020)] )
 with st.beta_expander('Mauve Staff by Invoice Number by Month'):
     st.write(mauve_pivot)
 
@@ -174,3 +210,16 @@ group_UK['Headcount']=pd.to_numeric(group_UK['Headcount'])
 uk_pivot=pivot_report(group_UK,filter='Description')
 with st.beta_expander('UK Staff by Description by Month'):
     st.write(uk_pivot)
+
+with st.beta_expander('Totals by location by month'):
+    uk_pivot_data=uk_pivot.reset_index()
+    summary=pd.concat([uk_pivot.loc['All'],mauve_pivot.loc['All'],bbf_pivot.loc['All']],axis=1)
+    summary.columns=['uk','mauve','bbf']
+    summary['total']=summary.sum(axis=1)
+    summary=summary.reset_index()
+    summary = summary[summary['date']!='All']
+    # st.write(summary)
+    summary['date']=pd.to_datetime(summary['date'])
+    summary=summary.set_index('date').sort_index(ascending=False)
+    st.write(summary.style.format("{:,.0f}"))
+# st.write(summary.style.format("{:,.0f}"))
