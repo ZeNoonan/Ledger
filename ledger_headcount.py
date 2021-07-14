@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 st.write('Select start of forecast period below and actual')
 with st.echo():
     start_forecast_period_resourcing_tool='2021-06-01 00:00:00'
-    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_09.xlsx'
+    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
 
@@ -130,10 +130,13 @@ def bbf_employees(x):
     return x
 
 bbf_headcount_data=bbf_employees(headcount_paye)
+
+
 def pivot_report(bbf_headcount_data,filter='Employee'):
     summary= pd.pivot_table(bbf_headcount_data, values='Headcount',index=[filter], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
     summary = summary.sort_values(by=['All'],ascending=False)
     return summary.reset_index().set_index(filter)
+
 # st.write('paye data')
 with st.beta_expander('BBF Staff by Employee by Month'):
     bbf_pivot=pivot_report(bbf_headcount_data,filter='Employee')
@@ -192,9 +195,9 @@ def mauve_staff(x):
 
 mauve=mauve_staff(cleaned_data)
 # st.write(mauve)
-st.write(mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
+st.write('to check that only invoices from mauve are included',mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
 mauve_pivot=pivot_report(mauve,filter='Jrn. No.')
-st.write(mauve[(mauve['month']==7) & (mauve['year']==2020)] )
+# st.write(mauve[(mauve['month']==7) & (mauve['year']==2020)] )
 with st.beta_expander('Mauve Staff by Invoice Number by Month'):
     st.write(mauve_pivot)
 
@@ -223,3 +226,23 @@ with st.beta_expander('Totals by location by month'):
     summary=summary.set_index('date').sort_index(ascending=False)
     st.write(summary.style.format("{:,.0f}"))
 # st.write(summary.style.format("{:,.0f}"))
+
+with st.beta_expander('Actuals by Dept'):
+    # st.write('Overall Headcount to date broken down by Department',bbf_headcount_data.head(5))
+    # st.write('mauve', mauve.head(5))
+    # st.write('uk', group_UK.head(5))
+    headcount_combined=pd.concat([bbf_headcount_data.reset_index().drop('index',axis=1),mauve.reset_index().drop('index',axis=1),group_UK.reset_index().drop('index',axis=1)])
+    # st.write(headcount_combined.head())
+    dept_pivot=pivot_report(headcount_combined,filter='Department')
+    st.write(dept_pivot.style.format("{:,.1f}"))
+
+with st.beta_expander('Actuals split by 921/940'):
+    acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
+    st.write(acc_sch_pivot.style.format("{:,.1f}"))
+
+with st.beta_expander('Actuals by Project for 921'):
+    # st.write(headcount_combined[headcount_combined['Acc_Schedule']==921])
+    headcount_921_actual_date=headcount_combined[headcount_combined['Acc_Schedule']==921].copy()
+    # st.write(headcount_921_actual_date[headcount_921_actual_date['Category'].isna()])
+    proj_pivot_921_actual = pivot_report(headcount_921_actual_date,filter='Project')
+    st.write(proj_pivot_921_actual.style.format("{:,.1f}"))
