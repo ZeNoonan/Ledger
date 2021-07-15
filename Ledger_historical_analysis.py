@@ -30,7 +30,7 @@ st.header('check the headcount for month 1 to end of production to fix up that d
 st.write('Select start of forecast period below and actual')
 with st.echo():
     start_forecast_period_resourcing_tool='2021-06-01 00:00:00'
-    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_09.xlsx'
+    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx'
 
 data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
 data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
@@ -229,8 +229,10 @@ with st.beta_expander('Historical GP Analysis by Month'):
     
     st.write(project_names_list)
     production_gp_percent_monthly=production_gp_percent_monthly.reset_index()
-    # st.write(production_gp_percent_monthly.head())
+    
     rslt_df = production_gp_percent_monthly[production_gp_percent_monthly['Project_Name'].isin(project_names_list)] 
     st.write('this is GP percent by month filtered by:')
     st.write(rslt_df[rslt_df['Project_Name'].str.contains('Eureka')])
     st.write("need to look at rolling GP percent analysis, think that's what I want to do look at main analysis")
+
+    # st.write(production_gp_percent_monthly.head(20))
