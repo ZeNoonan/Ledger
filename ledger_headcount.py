@@ -11,6 +11,11 @@ with st.echo():
     data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
+    data_2018='C:/Users/Darragh/Documents/Python/Work/Data/nl_18.xlsx'
+    data_2017='C:/Users/Darragh/Documents/Python/Work/Data/nl_17.xlsx'
+    data_2016='C:/Users/Darragh/Documents/Python/Work/Data/nl_16.xlsx'
+    data_2015='C:/Users/Darragh/Documents/Python/Work/Data/nl_15.xlsx'
+    data_2014='C:/Users/Darragh/Documents/Python/Work/Data/nl_14.xlsx'
 
 @st.cache
 def load_ledger_data(x):
@@ -20,6 +25,11 @@ forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Dat
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
 cached_2019=load_ledger_data(data_2019).copy()
+# cached_2018=load_ledger_data(data_2018).copy()
+# cached_2017=load_ledger_data(data_2017).copy()
+# cached_2016=load_ledger_data(data_2016).copy()
+# cached_2015=load_ledger_data(data_2015).copy()
+# cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
     forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
@@ -94,11 +104,18 @@ def nl_raw_clean_file(x, coding_acc_schedule):
 
 NL_Data_21=nl_raw_clean_file(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=nl_raw_clean_file(cached_2020,coding_acc_schedule) # MUTATION
-NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
+# NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
+# NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
+# NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
+# NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
+# NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
+# NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
+
 # st.write(NL_Data_19.head())
 
-consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-
+# consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+# consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
 
 
 # cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -232,9 +249,40 @@ with st.beta_expander('Actuals by Dept'):
     # st.write('mauve', mauve.head(5))
     # st.write('uk', group_UK.head(5))
     headcount_combined=pd.concat([bbf_headcount_data.reset_index().drop('index',axis=1),mauve.reset_index().drop('index',axis=1),group_UK.reset_index().drop('index',axis=1)])
-    # st.write(headcount_combined.head())
+    # st.write('data for graph??',headcount_combined.head())
     dept_pivot=pivot_report(headcount_combined,filter='Department')
     st.write(dept_pivot.style.format("{:,.1f}"))
+
+    def data_for_graphing_dept(x, select_level):
+        return x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
+        .reset_index().set_index(select_level).drop(['All']).reset_index()
+
+    graph_data=data_for_graphing_dept(dept_pivot,select_level='Department')
+    test_data={'Department':['TV','CG','Post','Admin','HR','IT','Pipeline','Development']}
+    test_df=pd.DataFrame(test_data).reset_index().rename(columns={'index':'order'})
+    # st.write(test_df)
+    graph_data=pd.merge(graph_data,test_df,on='Department',how='outer')
+    # st.write(test_graph_data.tail(10))
+    # st.write(graph_data.head(32))
+    
+
+    # https://stackoverflow.com/questions/61342355/altair-stacked-area-with-custom-sorting
+    # https://altair-viz.github.io/user_guide/customization.html
+    # https://vega.github.io/vega/docs/schemes/
+
+    # https://altair-viz.github.io/gallery/stacked_bar_chart_with_text.html
+
+    def chart_area_headcount(x,select_coding,tooltip_selection):
+        #.transform_calculate(order="{'TV':0, 'CG': 1,'Post':2,'Admin':3,'HR':4,'IT':5,'Pipeline':6,'Development':7}[datum.Department]")
+        return alt.Chart(x).mark_area().encode(
+            alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),
+            y='headcount',
+            color=alt.Color(select_coding, sort=alt.SortField("order", "ascending"),scale=alt.Scale(scheme='tableau10')),
+            # order=alt.Order('Department', sort=['TV', 'CG', 'Post', 'Admin', 'IT', 'HR', 'Pipeline','Development']),
+            tooltip=tooltip_selection,
+            order="order:O",
+        )
+    st.altair_chart(chart_area_headcount(x=graph_data,select_coding='Department',tooltip_selection='headcount'),use_container_width=True)
 
 with st.beta_expander('Actuals split by 921/940'):
     acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
@@ -246,3 +294,17 @@ with st.beta_expander('Actuals by Project for 921'):
     # st.write(headcount_921_actual_date[headcount_921_actual_date['Category'].isna()])
     proj_pivot_921_actual = pivot_report(headcount_921_actual_date,filter='Project')
     st.write(proj_pivot_921_actual.style.format("{:,.1f}"))
+
+with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
+    def create_pivot_comparing_production_headcount(shifted_df):
+        shifted_df=shifted_df.drop('All',axis=1).drop(['All'])
+        shifted_df.columns = np.arange(len(shifted_df.columns))
+        shifted_df=shifted_df.replace(0,np.NaN)
+        return shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
+    data_month_1=create_pivot_comparing_production_headcount(proj_pivot_921_actual)
+    st.write(data_month_1.style.format("{:,.0f}",na_rep="-"))
+
+st.write('add labels to headcount would be good')
+# https://altair-viz.github.io/gallery/stacked_bar_chart_with_text.html
+# nfl chart
+
