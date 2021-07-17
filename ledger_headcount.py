@@ -25,11 +25,11 @@ forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Dat
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
 cached_2019=load_ledger_data(data_2019).copy()
-# cached_2018=load_ledger_data(data_2018).copy()
-# cached_2017=load_ledger_data(data_2017).copy()
-# cached_2016=load_ledger_data(data_2016).copy()
-# cached_2015=load_ledger_data(data_2015).copy()
-# cached_2014=load_ledger_data(data_2014).copy()
+cached_2018=load_ledger_data(data_2018).copy()
+cached_2017=load_ledger_data(data_2017).copy()
+cached_2016=load_ledger_data(data_2016).copy()
+cached_2015=load_ledger_data(data_2015).copy()
+cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
     forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
@@ -90,8 +90,10 @@ def nl_raw_clean_file(x, coding_acc_schedule):
     x['month']=np.where(x['Jrn. No.']=='INV1891', 6, x['month'])
     x['month']=np.where(x['Jrn. No.']=='INV1948', 6, x['month'])
     x['month']=np.where(x['Jrn. No.']=='WCCINV1910', 6, x['month'])
-
-
+    x=x.query('`Jrn. No.`!="000003862"') # Jan 18 correcting journal
+    x=x.query('`Jrn. No.`!="000003939"') # Jan 18 correcting journal
+    x=x.query('`Jrn. No.`!="000003861"') # Jan 18 correcting journal
+    x=x.query('`Jrn. No.`!="000003932"') # Jan 18 correcting journal
     x['day']=1
     x['date']=pd.to_datetime(x[['year','month','day']],infer_datetime_format=True)
     # x['calendar_month']=x['Per.'].map({1:9,2:10,3:11,4:12,5:1,6:2,7:3,8:4,9:5,10:6,11:7,12:8,19:8})
@@ -104,18 +106,18 @@ def nl_raw_clean_file(x, coding_acc_schedule):
 
 NL_Data_21=nl_raw_clean_file(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=nl_raw_clean_file(cached_2020,coding_acc_schedule) # MUTATION
-# NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
-# NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
-# NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
-# NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
-# NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
-# NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
+NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
+NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
+NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
+NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
+NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
+NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
 
 # st.write(NL_Data_19.head())
 
 # consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-# consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
+consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+# consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
 
 
 # cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -147,7 +149,11 @@ def bbf_employees(x):
     return x
 
 bbf_headcount_data=bbf_employees(headcount_paye)
-
+# st.write('to check Jan 18 headcount looks wrong')
+# st.write(bbf_headcount_data.head())
+# st.write( bbf_headcount_data[(bbf_headcount_data['year']==2018) & (bbf_headcount_data['month']==7) & (bbf_headcount_data['Employee'].str.contains('Cornally')) ] )
+# st.write( bbf_headcount_data[(bbf_headcount_data['year']==2018) ] )
+# st.write( bbf_headcount_data[(bbf_headcount_data['year']==2018) & (bbf_headcount_data['month']==1) & (bbf_headcount_data['Employee'].str.contains('Higgins')) ] )
 
 def pivot_report(bbf_headcount_data,filter='Employee'):
     summary= pd.pivot_table(bbf_headcount_data, values='Headcount',index=[filter], columns=['date'],margins=True,aggfunc='sum',fill_value=0)
@@ -183,6 +189,7 @@ def clean_wrangle_headcount(data):
     x=x.query('`Jrn. No.`!="000007459"') # Luke reclass in April 21 from IT to Pipeline
     x=x.query('`Jrn. No.`!="BUK00009IN"')
     x=x.query('`Jrn. No.`!="BUK00009CN"')
+    
     return x
 
 cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -212,11 +219,12 @@ def mauve_staff(x):
 
 mauve=mauve_staff(cleaned_data)
 # st.write(mauve)
-st.write('to check that only invoices from mauve are included',mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
+
 mauve_pivot=pivot_report(mauve,filter='Jrn. No.')
 # st.write(mauve[(mauve['month']==7) & (mauve['year']==2020)] )
 with st.beta_expander('Mauve Staff by Invoice Number by Month'):
     st.write(mauve_pivot)
+    st.write('to check that only invoices from mauve are included',mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
 
 group_UK = cleaned_data.query('`Src. Account`=="BUK02"')
 # st.write(group_UK[(group_UK['month']==12) & (group_UK['year']==2020)] )
@@ -284,6 +292,16 @@ with st.beta_expander('Actuals by Dept'):
         )
     st.altair_chart(chart_area_headcount(x=graph_data,select_coding='Department',tooltip_selection='headcount'),use_container_width=True)
 
+    # Couldn't get labels to work properly
+    # https://github.com/altair-viz/altair/issues/921
+    chart_power=alt.Chart(graph_data).mark_area().encode(
+            alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),y='headcount',
+            color=alt.Color('Department', sort=alt.SortField("order", "ascending"),
+            scale=alt.Scale(domain=['CG', 'Post', 'Admin', 'IT', 'HR'],range=['red','green'])),
+            order="order:O")
+    # text=chart_power.mark_text().encode(text=alt.Text('Department:N'),order="order:O",color=alt.value('black'))
+    st.altair_chart(chart_power,use_container_width=True)
+
 with st.beta_expander('Actuals split by 921/940'):
     acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
     st.write(acc_sch_pivot.style.format("{:,.1f}"))
@@ -294,6 +312,35 @@ with st.beta_expander('Actuals by Project for 921'):
     # st.write(headcount_921_actual_date[headcount_921_actual_date['Category'].isna()])
     proj_pivot_921_actual = pivot_report(headcount_921_actual_date,filter='Project')
     st.write(proj_pivot_921_actual.style.format("{:,.1f}"))
+    
+    project_graph_data=data_for_graphing_dept(proj_pivot_921_actual,select_level='Project')
+    st.write('data for graph',project_graph_data.head())
+    st.altair_chart(chart_area_headcount(x=project_graph_data,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+
+    # st.write(project_graph_data.head())
+    project_graph_data['SUBANALYSIS 0'] = project_graph_data['Project'].str[:8]
+    # st.write(project_graph_data.head())
+    # st.write(Project_codes)
+    project_codes_merge=Project_codes.loc[:,['SUBANALYSIS 0','Description','client']]
+    project_codes_merge['SUBANALYSIS 0']=project_codes_merge['SUBANALYSIS 0'].str.strip()
+    project_graph_data['SUBANALYSIS 0']=project_graph_data['SUBANALYSIS 0'].str.strip()
+    # st.write('original merge into this',project_graph_data)
+    # st.write('project codes',project_codes_merge)
+    project_graph_data_updated = pd.merge(project_graph_data,project_codes_merge,on='SUBANALYSIS 0',how='left')
+    project_graph_data_updated=project_graph_data_updated.loc[:,['date','headcount','client','Description']].rename(columns={'Description':'Project'})
+    st.write('after merge',project_graph_data_updated.head())
+    st.altair_chart(chart_area_headcount(x=project_graph_data_updated,select_coding='client',tooltip_selection='headcount'),use_container_width=True)
+
+st.write('next step is to do the domain custom colors by client')
+    # project_list = project_graph_data['Project'].unique()
+    # st.write(project_list)
+    # project_snapshot=proj_pivot_921_actual.loc[:,'All'].reset_index().reset_index().rename(columns={'index':'client'})
+    # project_snapshot['client']=''
+    # # project_snapshot['client']
+    # # project_snapshot.loc['1-Z-155 Butterbean Bakery']='Nickelodeon'
+    # st.write(project_snapshot)
+
+
 
 with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
     def create_pivot_comparing_production_headcount(shifted_df):
