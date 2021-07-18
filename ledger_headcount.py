@@ -314,22 +314,32 @@ with st.beta_expander('Actuals by Project for 921'):
     st.write(proj_pivot_921_actual.style.format("{:,.1f}"))
     
     project_graph_data=data_for_graphing_dept(proj_pivot_921_actual,select_level='Project')
-    st.write('data for graph',project_graph_data.head())
-    st.altair_chart(chart_area_headcount(x=project_graph_data,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+    # st.write('data for graph',project_graph_data.head())
+    # st.altair_chart(chart_area_headcount(x=project_graph_data,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
 
-    # st.write(project_graph_data.head())
     project_graph_data['SUBANALYSIS 0'] = project_graph_data['Project'].str[:8]
-    # st.write(project_graph_data.head())
-    # st.write(Project_codes)
-    project_codes_merge=Project_codes.loc[:,['SUBANALYSIS 0','Description','client']]
+    project_codes_merge=Project_codes.loc[:,['SUBANALYSIS 0','Description','client','showrunner','project_all_seasons']]
     project_codes_merge['SUBANALYSIS 0']=project_codes_merge['SUBANALYSIS 0'].str.strip()
     project_graph_data['SUBANALYSIS 0']=project_graph_data['SUBANALYSIS 0'].str.strip()
-    # st.write('original merge into this',project_graph_data)
-    # st.write('project codes',project_codes_merge)
-    project_graph_data_updated = pd.merge(project_graph_data,project_codes_merge,on='SUBANALYSIS 0',how='left')
-    project_graph_data_updated=project_graph_data_updated.loc[:,['date','headcount','client','Description']].rename(columns={'Description':'Project'})
-    st.write('after merge',project_graph_data_updated.head())
-    st.altair_chart(chart_area_headcount(x=project_graph_data_updated,select_coding='client',tooltip_selection='headcount'),use_container_width=True)
+    project_graph_data_all = pd.merge(project_graph_data,project_codes_merge,on='SUBANALYSIS 0',how='left')
+    project_graph_data_updated=project_graph_data_all.loc[:,['date','headcount','client','Description']].rename(columns={'Description':'Project','headcount':'Headcount'})
+    # st.write(project_graph_data_updated)
+    group_client_data=pivot_report(project_graph_data_updated,filter='client')
+    # st.write(group_client_data)
+    group_client_data=data_for_graphing_dept(group_client_data,select_level='client')
+    st.altair_chart(chart_area_headcount(x=group_client_data,select_coding='client',tooltip_selection='client'),use_container_width=True)
+
+    project_graph_data_showrunner=project_graph_data_all.loc[:,['date','headcount','showrunner','Description']].rename(columns={'Description':'Project','headcount':'Headcount'})
+    group_client_data_1=pivot_report(project_graph_data_showrunner,filter='showrunner')
+    group_client_data_1=data_for_graphing_dept(group_client_data_1,select_level='showrunner')
+    st.altair_chart(chart_area_headcount(x=group_client_data_1,select_coding='showrunner',tooltip_selection='showrunner'),use_container_width=True)
+
+    project_graph_descrip=project_graph_data_all.loc[:,['date','headcount','project_all_seasons']].rename(columns={'project_all_seasons':'Project','headcount':'Headcount'})
+    group_client_data_1=pivot_report(project_graph_descrip,filter='Project')
+    group_client_data_1=data_for_graphing_dept(group_client_data_1,select_level='Project')
+    st.altair_chart(chart_area_headcount(x=group_client_data_1,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+
+
 
 st.write('next step is to do the domain custom colors by client')
     # project_list = project_graph_data['Project'].unique()
