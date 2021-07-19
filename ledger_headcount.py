@@ -32,10 +32,32 @@ cached_2015=load_ledger_data(data_2015).copy()
 cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
+    start_forecast_period_resourcing_tool='2021-07-31 00:00:00'
     forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
     coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
     coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
     Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
+
+with st.beta_expander('check resourcing forecast'):
+    st.write('resourcing tool export',forecast_resourcing.head())
+    st.write('project codes',forecast_project_mapping.head())
+    x= pd.merge(forecast_resourcing,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','Division':'Department'})
+    st.write('after merge',x.head())
+    def forecast_headcount(x,start_forecast_period_resourcing_tool,drop_column,keep_column):
+        x.columns= x.columns.astype(str)
+        col = x.pop("Department")
+        x.insert(x.columns.get_loc('Project') + 1, col.name, col)
+        sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+        sliced_x = sliced_x.drop(columns=[drop_column])
+        sliced_x=sliced_x.set_index(keep_column).unstack(level=keep_column).reset_index().rename(columns={'level_0':'date',0:'headcount'})
+        sliced_x=sliced_x.groupby([keep_column,'date'])['headcount'].sum().reset_index()
+        x = pd.pivot_table(sliced_x, values='headcount',index=[keep_column], columns=['date'],fill_value=0)
+        return x
+        # st.write('this is wierd x thing', x.head())
+
+    forecast_headcount=forecast_headcount(x,start_forecast_period_resourcing_tool,drop_column='Project',keep_column='Department')
+    st.write('this is formula result',forecast_headcount.head())
+
 
 @st.cache
 def nl_raw_clean_file(x, coding_acc_schedule):
