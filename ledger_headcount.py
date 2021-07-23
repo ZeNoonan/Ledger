@@ -8,7 +8,7 @@ from streamlit_echarts import st_echarts
 st.set_page_config(layout="wide")
 st.write('Select start of forecast period below and actual')
 with st.echo():
-    start_forecast_period_resourcing_tool='2021-06-01 00:00:00'
+    # start_forecast_period_resourcing_tool='2021-07-01 00:00:00'
     data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
@@ -39,25 +39,6 @@ with st.echo():
     coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
     Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
-with st.beta_expander('check resourcing forecast'):
-    st.write('resourcing tool export',forecast_resourcing.head())
-    st.write('project codes',forecast_project_mapping.head())
-    x= pd.merge(forecast_resourcing,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','Division':'Department'})
-    st.write('after merge',x.head())
-    def forecast_headcount(x,start_forecast_period_resourcing_tool,drop_column,keep_column):
-        x.columns= x.columns.astype(str)
-        col = x.pop("Department")
-        x.insert(x.columns.get_loc('Project') + 1, col.name, col)
-        sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
-        sliced_x = sliced_x.drop(columns=[drop_column])
-        sliced_x=sliced_x.set_index(keep_column).unstack(level=keep_column).reset_index().rename(columns={'level_0':'date',0:'headcount'})
-        sliced_x=sliced_x.groupby([keep_column,'date'])['headcount'].sum().reset_index()
-        x = pd.pivot_table(sliced_x, values='headcount',index=[keep_column], columns=['date'],fill_value=0)
-        return x
-        # st.write('this is wierd x thing', x.head())
-
-    forecast_headcount=forecast_headcount(x,start_forecast_period_resourcing_tool,drop_column='Project',keep_column='Department')
-    st.write('this is formula result',forecast_headcount.head())
 
 
 @st.cache
@@ -289,13 +270,9 @@ with st.beta_expander('Actuals by Dept'):
         .reset_index().set_index(select_level).drop(['All']).reset_index()
 
     graph_data=data_for_graphing_dept(dept_pivot,select_level='Department')
-    test_data={'Department':['TV','CG','Post','Admin','HR','IT','Pipeline','Development']}
+    test_data={'Department':['TV','CG','Post','Admin','HR','IT','Pipeline','Development']} # CUSTOM SORTING
     test_df=pd.DataFrame(test_data).reset_index().rename(columns={'index':'order'})
-    # st.write(test_df)
     graph_data=pd.merge(graph_data,test_df,on='Department',how='outer')
-    # st.write(test_graph_data.tail(10))
-    # st.write(graph_data.head(32))
-    
 
     # https://stackoverflow.com/questions/61342355/altair-stacked-area-with-custom-sorting
     # https://altair-viz.github.io/user_guide/customization.html
@@ -308,7 +285,7 @@ with st.beta_expander('Actuals by Dept'):
         return alt.Chart(x).mark_area().encode(
             alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),
             y='headcount',
-            color=alt.Color(select_coding, sort=alt.SortField("order", "ascending"),scale=alt.Scale(scheme='tableau10')),
+            color=alt.Color(select_coding, legend=alt.Legend(title=select_coding),sort=alt.SortField("order", "ascending"),scale=alt.Scale(scheme='tableau10')),
             # order=alt.Order('Department', sort=['TV', 'CG', 'Post', 'Admin', 'IT', 'HR', 'Pipeline','Development']),
             tooltip=tooltip_selection,
             order="order:O",
@@ -317,17 +294,63 @@ with st.beta_expander('Actuals by Dept'):
 
     # Couldn't get labels to work properly
     # https://github.com/altair-viz/altair/issues/921
-    chart_power=alt.Chart(graph_data).mark_area().encode(
-            alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),y='headcount',
-            color=alt.Color('Department', sort=alt.SortField("order", "ascending"),
-            scale=alt.Scale(domain=['CG', 'Post', 'Admin', 'IT', 'HR'],range=['red','green'])),
-            order="order:O")
-    # text=chart_power.mark_text().encode(text=alt.Text('Department:N'),order="order:O",color=alt.value('black'))
-    st.altair_chart(chart_power,use_container_width=True)
+    # chart_power=alt.Chart(graph_data).mark_area().encode(
+    #         alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),y='headcount',
+    #         color=alt.Color('Department', sort=alt.SortField("order", "ascending"),
+    #         scale=alt.Scale(domain=['CG', 'Post', 'Admin', 'IT', 'HR'],range=['red','green'])),
+    #         order="order:O")
+    # # text=chart_power.mark_text().encode(text=alt.Text('Department:N'),order="order:O",color=alt.value('black'))
+    # st.altair_chart(chart_power,use_container_width=True)
 
-with st.beta_expander('Actuals split by 921/940'):
-    acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
-    st.write(acc_sch_pivot.style.format("{:,.1f}"))
+def forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_column,keep_column):
+    x.columns= x.columns.astype(str)
+    col = x.pop("Department")
+    x.insert(x.columns.get_loc('Project') + 1, col.name, col)
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    sliced_x = sliced_x.drop(columns=[drop_column])
+    sliced_x=sliced_x.set_index(keep_column).unstack(level=keep_column).reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    sliced_x=sliced_x.groupby([keep_column,'date'])['headcount'].sum().reset_index()
+    x = pd.pivot_table(sliced_x, values='headcount',index=[keep_column], columns=['date'],fill_value=0)
+    return x
+
+# st.write('before function',forecast_resourcing)
+with st.beta_expander('Dept: Actual + Forecast'):
+    # st.write('resourcing tool export',forecast_resourcing.head())
+    # st.write('project codes',forecast_project_mapping.head())
+
+    x= pd.merge(forecast_resourcing,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project','Division':'Department'})
+    # st.write('after merge',x.head())
+        # st.write('this is wierd x thing', x.head())
+
+    forecast_headcount=forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_column='Project',keep_column='Department')
+    # st.write('this is formula result',forecast_headcount.head())
+
+    def headcount_actual_plus_forecast(actual_headcount,forecast_headcount):
+        actual=actual_headcount.drop('All',axis=1).drop(['All'])
+        return pd.concat([actual,forecast_headcount],axis=1).ffill(axis=1)
+
+    def headcount_actual_plus_forecast_with_subtotal(merged):
+        merged.loc['All']= merged.sum(numeric_only=True, axis=0)
+        merged.loc[:,'All'] = merged.sum(numeric_only=True, axis=1)
+        return merged.sort_values(by='All',ascending=False)
+
+    total_headcount_no_subtotal=headcount_actual_plus_forecast(actual_headcount=dept_pivot,forecast_headcount=forecast_headcount)
+    total_headcount_with_subtotal=headcount_actual_plus_forecast_with_subtotal(total_headcount_no_subtotal)
+    st.write(total_headcount_with_subtotal.style.format("{:,.1f}"))
+
+    graph_data_1=data_for_graphing_dept(total_headcount_with_subtotal,select_level='Department')
+    test_data_1={'Department':['TV','CG','Post','Admin','HR','IT','Pipeline','Development']}
+    test_df_1=pd.DataFrame(test_data_1).reset_index().rename(columns={'index':'order'})
+    graph_data_1=pd.merge(graph_data_1,test_df_1,on='Department',how='outer')
+    base=chart_area_headcount(x=graph_data_1,select_coding='Department',tooltip_selection='headcount')
+    st.altair_chart(base,use_container_width=True)
+
+    # data_clean=total_headcount_with_subtotal.reset_index()
+    # st.write(data_clean.head())
+    # total_headcount_with_subtotal.loc['% Winning'] = total_headcount_with_subtotal.loc['921.0'] / total_headcount_with_subtotal.loc['All']
+
+
+
 
 with st.beta_expander('Actuals by Project for 921'):
     # st.write(headcount_combined[headcount_combined['Acc_Schedule']==921])
@@ -363,15 +386,68 @@ with st.beta_expander('Actuals by Project for 921'):
     st.altair_chart(chart_area_headcount(x=group_client_data_1,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
 
 
+# st.write(x)
+with st.beta_expander('Project: Actual + Forecast'):
+    # st.write(x.head())
+    forecast_headcount_project=forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_column='Department',keep_column='Project')
+    # st.write('this is formula result',forecast_headcount_project)
 
-st.write('next step is to do the domain custom colors by client')
-    # project_list = project_graph_data['Project'].unique()
-    # st.write(project_list)
-    # project_snapshot=proj_pivot_921_actual.loc[:,'All'].reset_index().reset_index().rename(columns={'index':'client'})
-    # project_snapshot['client']=''
-    # # project_snapshot['client']
-    # # project_snapshot.loc['1-Z-155 Butterbean Bakery']='Nickelodeon'
-    # st.write(project_snapshot)
+    project_headcount_no_subtotal=headcount_actual_plus_forecast(actual_headcount=proj_pivot_921_actual,forecast_headcount=forecast_headcount_project)
+    project_headcount_with_subtotal=headcount_actual_plus_forecast_with_subtotal(project_headcount_no_subtotal)
+    st.write(project_headcount_with_subtotal.style.format("{:,.1f}"))
+    project_graph_data_actual_forecast_1=data_for_graphing_dept(project_headcount_with_subtotal,select_level='Project')
+    project_graph_data_actual_forecast_1['SUBANALYSIS 0'] = project_graph_data_actual_forecast_1['Project'].str[:8]
+    project_graph_data_actual_forecast_1['SUBANALYSIS 0']=project_graph_data_actual_forecast_1['SUBANALYSIS 0'].str.strip()
+    # st.write('project graph data',project_graph_data_actual_forecast_1)
+    # st.write('project codes merge spreadsheet',project_codes_merge)
+
+    project_graph_data_all_1 = pd.merge(project_graph_data_actual_forecast_1,project_codes_merge,on='SUBANALYSIS 0',how='left')
+    # st.write('test 1',project_graph_data_all_1)
+    project_graph_data_updated_1=project_graph_data_all_1.loc[:,['date','headcount','client','Description']].rename(columns={'Description':'Project','headcount':'Headcount'})
+    # st.write('test 2',project_graph_data_updated_1)
+    group_client_data_1=pivot_report(project_graph_data_updated_1,filter='client')
+    # st.write('test 3',group_client_data)
+    group_client_data_1=data_for_graphing_dept(group_client_data_1,select_level='client')
+    st.altair_chart(chart_area_headcount(x=group_client_data_1,select_coding='client',tooltip_selection='client'),use_container_width=True)
+
+    project_graph_descrip_1=project_graph_data_all_1.loc[:,['date','headcount','project_all_seasons']].rename(columns={'project_all_seasons':'Project','headcount':'Headcount'})
+    group_client_data_2=pivot_report(project_graph_descrip_1,filter='Project')
+    group_client_data_2=data_for_graphing_dept(group_client_data_2,select_level='Project')
+    st.altair_chart(chart_area_headcount(x=group_client_data_2,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+
+    project_graph_data_showrunner_1=project_graph_data_all_1.loc[:,['date','headcount','showrunner','Description']].rename(columns={'Description':'Project','headcount':'Headcount'})
+    group_client_data_3=pivot_report(project_graph_data_showrunner_1,filter='showrunner')
+    group_client_data_3=data_for_graphing_dept(group_client_data_3,select_level='showrunner')
+    st.altair_chart(chart_area_headcount(x=group_client_data_3,select_coding='showrunner',tooltip_selection='showrunner'),use_container_width=True)
+
+
+
+with st.beta_expander('Actuals split by 921/940'):
+    acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
+    # st.write(acc_sch_pivot.reset_index().head())
+    # st.write(acc_sch_pivot.style.format("{:,.1f}"))
+    # st.write('check the ratio of overhead staff to direct headcount')
+    graph_data_2=data_for_graphing_dept(acc_sch_pivot,select_level='Acc_Schedule')
+    graph_data_2['Acc_Schedule']=graph_data_2['Acc_Schedule'].astype(str)
+    # st.write(graph_data_2.head())
+    base_1=chart_area_headcount(x=graph_data_2,select_coding='Acc_Schedule',tooltip_selection='headcount')
+    st.altair_chart(base_1,use_container_width=True)
+    
+    data_clean=acc_sch_pivot.reset_index()
+    data_clean['Acc_Schedule']=data_clean['Acc_Schedule'].astype(str)
+    data_clean=data_clean.set_index('Acc_Schedule')
+    # st.write(data_clean)
+    data_clean.loc['% Overhead'] = data_clean.loc['940.0'] / data_clean.loc['All']
+    st.write(data_clean.style.format("{:,.2f}"))
+    graph_data_3=data_for_graphing_dept(data_clean,select_level='Acc_Schedule')
+    graph_data_3=graph_data_3[graph_data_3['Acc_Schedule']=='% Overhead'].drop('Acc_Schedule',axis=1).copy()
+    # st.write(graph_data_3)
+    line = alt.Chart(graph_data_3).mark_line().encode(alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),
+    alt.Y('headcount'),color=alt.value("lime"))
+    # https://www.w3schools.com/cssref/css_colors.asp
+    # st.altair_chart(line,use_container_width=True)
+    dual=alt.layer(base_1, line).resolve_scale(y = 'independent')
+    st.altair_chart(dual,use_container_width=True)
 
 
 
@@ -382,79 +458,103 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
         shifted_df=shifted_df.replace(0,np.NaN)
         return shifted_df.apply(lambda x: pd.Series(x.dropna().values), axis=1).fillna(0)
     data_month_1=create_pivot_comparing_production_headcount(proj_pivot_921_actual)
-    st.write(data_month_1.style.format("{:,.0f}",na_rep="-"))
+    # st.write(data_month_1.style.format("{:,.0f}",na_rep="-"))
 
-st.write('add labels to headcount would be good')
-# https://altair-viz.github.io/gallery/stacked_bar_chart_with_text.html
-# nfl chart
+    data_month_2=create_pivot_comparing_production_headcount(project_headcount_no_subtotal)
+    data_month_2['Total']=data_month_2.sum(axis=1)
+    data_month_2=data_month_2.sort_values(by='Total',ascending=False)
+    st.write(data_month_2.style.format("{:,.0f}",na_rep="-"))
+
+    filter_projects = data_month_2.iloc[:10,:].copy()
+    
+    # graph_data_4=data_for_graphing_dept(filter_top_10,select_level='Project')
+    def clean_pivot(filter_projects):
+        return filter_projects.unstack().reset_index().rename(columns={0:'headcount','level_0':'date'}).set_index('date').drop(['Total']).reset_index()
+    filter_projects=clean_pivot(filter_projects)
+    st.write(filter_projects)
+    
+
+    line_chart = alt.Chart(filter_projects).mark_line().encode(alt.X('date',axis=alt.Axis(title='date')),
+    alt.Y('headcount'),color=alt.Color('Project:N'))
+    st.altair_chart(line_chart,use_container_width=True)
+
+    # https://altair-viz.github.io/gallery/multiline_tooltip.html
+
+
+
+
+
+
+
+
 
 with st.beta_expander('Trying out echarts'):
-    with open("https://github.com/andfanilo/streamlit-echarts-demo/blob/master/data/life-expectancy-table.json") as f:
-        raw_data = json.load(f)
-    countries = [
-        "Finland",
-        "France",
-        "Germany",
-        "Iceland",
-        "Norway",
-        "Poland",
-        "Russia",
-        "United Kingdom",
-    ]
+    # with open("https://github.com/andfanilo/streamlit-echarts-demo/blob/master/data/life-expectancy-table.json") as f:
+    #     raw_data = json.load(f)
+    # countries = [
+    #     "Finland",
+    #     "France",
+    #     "Germany",
+    #     "Iceland",
+    #     "Norway",
+    #     "Poland",
+    #     "Russia",
+    #     "United Kingdom",
+    # ]
 
-    datasetWithFilters = [
-        {
-            "id": f"dataset_{country}",
-            "fromDatasetId": "dataset_raw",
-            "transform": {
-                "type": "filter",
-                "config": {
-                    "and": [
-                        {"dimension": "Year", "gte": 1950},
-                        {"dimension": "Country", "=": country},
-                    ]
-                },
-            },
-        }
-        for country in countries
-    ]
+    # datasetWithFilters = [
+    #     {
+    #         "id": f"dataset_{country}",
+    #         "fromDatasetId": "dataset_raw",
+    #         "transform": {
+    #             "type": "filter",
+    #             "config": {
+    #                 "and": [
+    #                     {"dimension": "Year", "gte": 1950},
+    #                     {"dimension": "Country", "=": country},
+    #                 ]
+    #             },
+    #         },
+    #     }
+    #     for country in countries
+    # ]
 
-    seriesList = [
-        {
-            "type": "line",
-            "datasetId": f"dataset_{country}",
-            "showSymbol": False,
-            "name": country,
-            "endLabel": {
-                "show": True,
-                "formatter": JsCode(
-                    "function (params) { return params.value[3] + ': ' + params.value[0];}"
-                ).js_code,
-            },
-            "labelLayout": {"moveOverlap": "shiftY"},
-            "emphasis": {"focus": "series"},
-            "encode": {
-                "x": "Year",
-                "y": "Income",
-                "label": ["Country", "Income"],
-                "itemName": "Year",
-                "tooltip": ["Income"],
-            },
-        }
-        for country in countries
-    ]
+    # seriesList = [
+    #     {
+    #         "type": "line",
+    #         "datasetId": f"dataset_{country}",
+    #         "showSymbol": False,
+    #         "name": country,
+    #         "endLabel": {
+    #             "show": True,
+    #             "formatter": JsCode(
+    #                 "function (params) { return params.value[3] + ': ' + params.value[0];}"
+    #             ).js_code,
+    #         },
+    #         "labelLayout": {"moveOverlap": "shiftY"},
+    #         "emphasis": {"focus": "series"},
+    #         "encode": {
+    #             "x": "Year",
+    #             "y": "Income",
+    #             "label": ["Country", "Income"],
+    #             "itemName": "Year",
+    #             "tooltip": ["Income"],
+    #         },
+    #     }
+    #     for country in countries
+    # ]
 
-    option = {
-        "animationDuration": 10000,
-        "dataset": [{"id": "dataset_raw", "source": raw_data}] + datasetWithFilters,
-        "title": {"text": "Income in Europe since 1950"},
-        "tooltip": {"order": "valueDesc", "trigger": "axis"},
-        "xAxis": {"type": "category", "nameLocation": "middle"},
-        "yAxis": {"name": "Income"},
-        "grid": {"right": 140},
-        "series": seriesList,
-    }
-    st_echarts(options=option, height="600px")
+    # option = {
+    #     "animationDuration": 10000,
+    #     "dataset": [{"id": "dataset_raw", "source": raw_data}] + datasetWithFilters,
+    #     "title": {"text": "Income in Europe since 1950"},
+    #     "tooltip": {"order": "valueDesc", "trigger": "axis"},
+    #     "xAxis": {"type": "category", "nameLocation": "middle"},
+    #     "yAxis": {"name": "Income"},
+    #     "grid": {"right": 140},
+    #     "series": seriesList,
+    # }
+    # st_echarts(options=option, height="600px")
 
     options_1 = {
         "title": {"text": "headcount by dept"},
