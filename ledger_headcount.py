@@ -465,25 +465,63 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
     data_month_2=data_month_2.sort_values(by='Total',ascending=False)
     st.write(data_month_2.style.format("{:,.0f}",na_rep="-"))
 
-    filter_projects = data_month_2.iloc[:10,:].copy()
+    filter_projects = data_month_2.iloc[:22,:].copy()
     
     # graph_data_4=data_for_graphing_dept(filter_top_10,select_level='Project')
     def clean_pivot(filter_projects):
         return filter_projects.unstack().reset_index().rename(columns={0:'headcount','level_0':'date'}).set_index('date').drop(['Total']).reset_index()
     filter_projects=clean_pivot(filter_projects)
-    st.write(filter_projects)
+    filter_projects['headcount']=filter_projects['headcount'].replace(0,np.NaN)
+    # st.write(filter_projects)
     
 
-    line_chart = alt.Chart(filter_projects).mark_line().encode(alt.X('date',axis=alt.Axis(title='date')),
+    line_chart = alt.Chart(filter_projects).mark_line(interpolate='basis').encode(alt.X('date',axis=alt.Axis(title='date')),
     alt.Y('headcount'),color=alt.Color('Project:N'))
-    st.altair_chart(line_chart,use_container_width=True)
+    # st.altair_chart(line_chart,use_container_width=True)
 
     # https://altair-viz.github.io/gallery/multiline_tooltip.html
 
+    nearest = alt.selection(type='single', nearest=True, on='mouseover',fields=['date'], empty='none')
+    line_sel = alt.Chart(filter_projects).mark_line(interpolate='basis').encode(x='date:Q',y='headcount:Q',color='Project:N')
+    selectors = alt.Chart(filter_projects).mark_point().encode(x='date:Q',opacity=alt.value(0)).add_selection(nearest)
+    points = line_sel.mark_point().encode(opacity=alt.condition(nearest, alt.value(1), alt.value(0)))
+    text = line_sel.mark_text(align='left', dx=5, dy=-5).encode(text=alt.condition(nearest, 'Project:N', alt.value(' ')))
+    rules = alt.Chart(filter_projects).mark_rule(color='gray').encode(x='date:Q').transform_filter(nearest)
+    updated_chart = alt.layer(line_sel, selectors, points, rules, text)
+    st.altair_chart(updated_chart,use_container_width=True)
+
+    # st.write(data_month_2.reset_index())
+    chart_power=alt.Chart(filter_projects).mark_line().encode(
+            alt.X('date:Q',axis=alt.Axis(title='date',labelAngle=90)),y='headcount:Q',color=alt.Color('Project:N',
+            scale=alt.Scale(domain=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
+            '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
+            "1-Z-163 Karma's World","1-Z-781 KarmasWorld2",
+             "1-Z-249 Eva the Owlet (Tree)","1-Z-211 Friends in Oz",
+             "1-Z-233 O.G (previously Otis)",'1-Z-209 Eureka','1-Z-155 Butterbean Bakery',"1-Z-196 Chico Bon Bon"],
+             range=['red','red','red','black','black',
+             'lime','lime','blue','blue',
+             'orange','orange',
+             'lightgrey','lightgrey',
+             'lightgrey','lightgrey','lightgrey','lightgrey'])))
+    st.altair_chart(chart_power,use_container_width=True)
+
+    sequels=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
+            '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
+            "1-Z-163 Karma's World","1-Z-781 KarmasWorld2"]
+    # sequel_filter = data_month_2.loc[sequels,:].copy()
+    sequel_filter=clean_pivot(data_month_2.loc[sequels,:].copy())
+    sequel_filter['headcount']=sequel_filter['headcount'].replace(0,np.NaN)
+    # st.write(sequel_filter)
+    chart_sequel=alt.Chart(sequel_filter).mark_line().encode(
+            alt.X('date:Q'),y='headcount:Q',color=alt.Color('Project:N',
+            scale=alt.Scale(domain=sequels,
+             range=['red','red','red','black','black',
+             'lime','lime','blue','blue',
+             'orange','orange',
+            ])))
 
 
-
-
+    st.altair_chart(chart_sequel,use_container_width=True)
 
 
 
