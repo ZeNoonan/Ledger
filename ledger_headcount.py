@@ -252,8 +252,34 @@ with st.beta_expander('Totals by location by month'):
     summary = summary[summary['date']!='All']
     # st.write(summary)
     summary['date']=pd.to_datetime(summary['date'])
+    graphing_location_dept = summary.drop('total',axis=1).copy()
+    # st.write('graphing data', graphing_location_dept)
     summary=summary.set_index('date').sort_index(ascending=False)
     st.write(summary.style.format("{:,.0f}"))
+    test_test=summary.drop('total',axis=1).copy()
+    test_melt = pd.melt(test_test,var_name='location',value_name='headcount',ignore_index=False).reset_index()
+    # st.write(test_melt)
+
+    selection_3 = alt.selection_multi(fields=['location'], bind='legend')
+    scale_3=alt.Scale(domain=['bbf','mauve','uk'],range=['blue','red','lime'])
+    test_run_3=alt.Chart(test_melt).mark_area().encode(
+    alt.X('date:T', axis=alt.Axis(domain=False, tickSize=0)),
+    alt.Y('headcount:Q'),
+    color=alt.Color('location:N',scale=scale_3,sort=alt.SortField("location", "descending")),order="location:O",
+    opacity=alt.condition(selection_3, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'headcount': [300]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='headcount:Q')
+    updated_test_chart = alt.layer(test_run_3,vline)
+    # rule = test_run_3.mark_rule(color="black",strokeWidth=3).encode(y=300)
+
+    st.write('Select and press shift to highlight locations')
+    # st.altair_chart((test_run_3).add_selection(selection_3),use_container_width=True)
+
+    st.altair_chart((updated_test_chart).add_selection(selection_3),use_container_width=True)
+
+
+
+
 # st.write(summary.style.format("{:,.0f}"))
 
 with st.beta_expander('Actuals by Dept'):
@@ -345,11 +371,19 @@ with st.beta_expander('Dept: Actual + Forecast'):
     base=chart_area_headcount(x=graph_data_1,select_coding='Department',tooltip_selection='headcount')
     st.altair_chart(base,use_container_width=True)
 
-    # data_clean=total_headcount_with_subtotal.reset_index()
-    # st.write(data_clean.head())
-    # total_headcount_with_subtotal.loc['% Winning'] = total_headcount_with_subtotal.loc['921.0'] / total_headcount_with_subtotal.loc['All']
-
-
+    selection_4 = alt.selection_multi(fields=['Department'], bind='legend')
+    # scale_4=alt.Scale(domain=['bbf','mauve','uk'],range=['blue','red','lime'])
+    test_run_4=alt.Chart(graph_data_1).mark_area().encode(
+    alt.X('yearmonth(date):T',axis=alt.Axis(title='date',labelAngle=90)),
+    alt.Y('headcount:Q'),
+    color=alt.Color('Department:N',sort=alt.SortField("order", "descending"),scale=alt.Scale(scheme='tableau10')),
+    order="order:O",
+    opacity=alt.condition(selection_4, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'headcount': [300]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='headcount:Q')
+    updated_test_chart_1 = alt.layer(test_run_4,vline)
+    st.write('Select and press shift to highlight Departments')
+    st.altair_chart((updated_test_chart_1).add_selection(selection_4),use_container_width=True)
 
 
 with st.beta_expander('Actuals by Project for 921'):
@@ -414,7 +448,9 @@ with st.beta_expander('Project: Actual + Forecast'):
     group_client_data_2=pivot_report(project_graph_descrip_1,filter='Project')
     group_client_data_2=data_for_graphing_dept(group_client_data_2,select_level='Project')
     st.altair_chart(chart_area_headcount(x=group_client_data_2,select_coding='Project',tooltip_selection='Project'),use_container_width=True)
+    # project_names=["Doc McStuffins","Vampirina",""]
 
+    st.write('Headcount by shows that have Chris Nee as showrunner/creator')
     project_graph_data_showrunner_1=project_graph_data_all_1.loc[:,['date','headcount','showrunner','Description']].rename(columns={'Description':'Project','headcount':'Headcount'})
     group_client_data_3=pivot_report(project_graph_data_showrunner_1,filter='showrunner')
     group_client_data_3=data_for_graphing_dept(group_client_data_3,select_level='showrunner')
@@ -431,7 +467,7 @@ with st.beta_expander('Actuals split by 921/940'):
     graph_data_2['Acc_Schedule']=graph_data_2['Acc_Schedule'].astype(str)
     # st.write(graph_data_2.head())
     base_1=chart_area_headcount(x=graph_data_2,select_coding='Acc_Schedule',tooltip_selection='headcount')
-    st.altair_chart(base_1,use_container_width=True)
+    # st.altair_chart(base_1,use_container_width=True)
     
     data_clean=acc_sch_pivot.reset_index()
     data_clean['Acc_Schedule']=data_clean['Acc_Schedule'].astype(str)
@@ -464,7 +500,7 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
     data_month_2['Total']=data_month_2.sum(axis=1)
     data_month_2=data_month_2.sort_values(by='Total',ascending=False)
     st.write(data_month_2.style.format("{:,.0f}",na_rep="-"))
-
+    # st.write(data_month_2.reset_index())
     filter_projects = data_month_2.iloc[:22,:].copy()
     
     # graph_data_4=data_for_graphing_dept(filter_top_10,select_level='Project')
@@ -488,41 +524,61 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
     text = line_sel.mark_text(align='left', dx=5, dy=-5).encode(text=alt.condition(nearest, 'Project:N', alt.value(' ')))
     rules = alt.Chart(filter_projects).mark_rule(color='gray').encode(x='date:Q').transform_filter(nearest)
     updated_chart = alt.layer(line_sel, selectors, points, rules, text)
+    st.write('This puts a line over graph which selects the data points')
     st.altair_chart(updated_chart,use_container_width=True)
-
-    # st.write(data_month_2.reset_index())
-    chart_power=alt.Chart(filter_projects).mark_line().encode(
-            alt.X('date:Q',axis=alt.Axis(title='date',labelAngle=90)),y='headcount:Q',color=alt.Color('Project:N',
-            scale=alt.Scale(domain=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
-            '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
-            "1-Z-163 Karma's World","1-Z-781 KarmasWorld2",
-             "1-Z-249 Eva the Owlet (Tree)","1-Z-211 Friends in Oz",
-             "1-Z-233 O.G (previously Otis)",'1-Z-209 Eureka','1-Z-155 Butterbean Bakery',"1-Z-196 Chico Bon Bon"],
-             range=['red','red','red','black','black',
-             'lime','lime','blue','blue',
-             'orange','orange',
-             'lightgrey','lightgrey',
-             'lightgrey','lightgrey','lightgrey','lightgrey'])))
-    st.altair_chart(chart_power,use_container_width=True)
 
     sequels=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
             '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
             "1-Z-163 Karma's World","1-Z-781 KarmasWorld2"]
-    # sequel_filter = data_month_2.loc[sequels,:].copy()
     sequel_filter=clean_pivot(data_month_2.loc[sequels,:].copy())
     sequel_filter['headcount']=sequel_filter['headcount'].replace(0,np.NaN)
-    # st.write(sequel_filter)
-    chart_sequel=alt.Chart(sequel_filter).mark_line().encode(
-            alt.X('date:Q'),y='headcount:Q',color=alt.Color('Project:N',
-            scale=alt.Scale(domain=sequels,
-             range=['red','red','red','black','black',
-             'lime','lime','blue','blue',
-             'orange','orange',
-            ])))
+
+    # highlight = alt.selection(type='single', on='mouseover',fields=['Project'], nearest=True)
+    # base=alt.Chart(sequel_filter).encode(
+    #         alt.X('date:Q'),y='headcount:Q',color=alt.Color('Project:N',
+    #         scale=alt.Scale(domain=sequels,range=['red','red','red','black','black','lime','lime','blue','blue','orange','orange']))
+    #         )
+    # points = base.mark_circle().encode(opacity=alt.value(0)).add_selection(highlight)
+    # lines = base.mark_line().encode(size=alt.condition(~highlight, alt.value(1), alt.value(3)))
+    # st.write('This highlights a line on graph when you hover mouse over it')
+    # st.altair_chart(points+lines,use_container_width=True)
+
+    # https://stackoverflow.com/questions/65226756/altair-layered-line-chart-with-legend-and-custom-colors
+    # https://altair-viz.github.io/gallery/interactive_legend.html
+    st.write('Please shift to select multiple lines for multiple season Productions')
+    selection_1 = alt.selection_multi(fields=['Project'], bind='legend')
+    scale=alt.Scale(domain=sequels,range=['red','red','red','black','black','lime','lime','blue','blue','orange','orange'])
+    test_run=alt.Chart(sequel_filter).mark_line().encode(
+    alt.X('date:Q', axis=alt.Axis(domain=False, tickSize=0)),
+    alt.Y('headcount:Q'),
+    color=alt.Color('Project:N',scale=scale),
+    opacity=alt.condition(selection_1, alt.value(1), alt.value(0.1)))
+    st.altair_chart(test_run.add_selection(selection_1),use_container_width=True)
+
+    list_projects=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-128 Doc McStuffins III","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
+    '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2","1-Z-163 Karma's World","1-Z-781 KarmasWorld2",
+    "1-Z-111 Angela's Christmas","1-Z-212 Angela's Wishes",
+    "1-Z-249 Eva the Owlet (Tree)",
+    "1-Z-211 Friends in Oz","1-Z-233 O.G (previously Otis)",'1-Z-209 Eureka','1-Z-155 Butterbean Bakery',"1-Z-196 Chico Bon Bon",
+    "1-Z-175 Stinky & Dirty 2","1-Z-195 Bing Bunny 4","1-Z-255 The Worry Monster","1-Z-107 Octo IV","1-Z-185 Ladybird Lu (Ladybird Dot)"]
+
+    # data_filtered = data_month_2.reset_index().loc[data_month_2['Project'].isin(list_projects)]
+    filter_projects_updated=clean_pivot(data_month_2)
+    filter_projects_updated['headcount']=filter_projects_updated['headcount'].replace(0,np.NaN)
+    # st.write(filter_projects_updated)
+    data_filtered = filter_projects_updated.loc[filter_projects_updated['Project'].isin(list_projects)]
 
 
-    st.altair_chart(chart_sequel,use_container_width=True)
-
+    selection_2 = alt.selection_multi(fields=['Project'], bind='legend')
+    scale_2=alt.Scale(domain=list_projects,range=['red','red','red','black','black','black','lime','lime','blue','blue','orange','orange','purple','purple',
+    'grey','grey','grey','grey','grey','grey','grey','grey','grey','grey','grey'])
+    test_run_2=alt.Chart(data_filtered).mark_line().encode(
+    alt.X('date:Q', axis=alt.Axis(domain=False, tickSize=0)),
+    alt.Y('headcount:Q'),
+    color=alt.Color('Project:N',scale=scale_2),
+    opacity=alt.condition(selection_2, alt.value(1), alt.value(0.1)))
+    st.write('Select and press shift to highlight Productions - All')
+    st.altair_chart(test_run_2.add_selection(selection_2),use_container_width=True)
 
 
 
