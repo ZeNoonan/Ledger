@@ -263,7 +263,7 @@ with st.beta_expander('Totals by location by month'):
     selection_3 = alt.selection_multi(fields=['location'], bind='legend')
     scale_3=alt.Scale(domain=['bbf','mauve','uk'],range=['blue','red','lime'])
     test_run_3=alt.Chart(test_melt).mark_area().encode(
-    alt.X('date:T', axis=alt.Axis(domain=False, tickSize=0)),
+    alt.X('yearmonth(date):T', axis=alt.Axis(title='date',labelAngle=90)),
     alt.Y('headcount:Q'),
     color=alt.Color('location:N',scale=scale_3,sort=alt.SortField("location", "descending")),order="location:O",
     opacity=alt.condition(selection_3, alt.value(1), alt.value(0.1)))
