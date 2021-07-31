@@ -70,11 +70,24 @@ cols_to_move = [('fiscal_year', 'fiscal_year'),('calendar_year', 'calendar_year'
  ('Classification 9SMG', 'Classification 9SMG'), ('Classification Stats', 'Classification Stats'), ('Sub-Classification Stats', 'Sub-Classification Stats')]
 cols = cols_to_move + [col for col in df if col not in cols_to_move]
 df=df[cols]
-st.write(df.dtypes)
+# st.write('dataframe',df.head())
+# st.write(df.dtypes)
+
+df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]=df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]*-1
+st.write(df)
 
 filter_df=(df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})])
+filter_in_dil=(filter_df.loc[:,filter_df.columns.get_level_values(1).isin({"9 Story Dist.", "9SDIL"})])
+filter_out_dil=(filter_df.loc[:,~filter_df.columns.get_level_values(1).isin({"9 Story Dist.", "9SDIL"})])
+filter_out_uk=(filter_out_dil.loc[:,~filter_out_dil.columns.get_level_values(1).isin({"BBF UK","NK2","PRS","VMP 2D","Knight","NK2","UK","KPL"})])
+filter_in_uk=(filter_out_dil.loc[:,filter_out_dil.columns.get_level_values(1).isin({"BBF UK","NK2","PRS","VMP 2D","Knight","NK2","UK","KPL"})])
 df[('total','total')]=filter_df.sum(axis=1)
-df[('total','total')]=-df[('total','total')]
+# df[('total','total')]=-df[('total','total')]
+df[('total','9sdil_total')]=filter_in_dil.sum(axis=1)
+df[('total','bbf_group_total')]=filter_out_dil.sum(axis=1)
+df[('total','bbf_irl_group_total')]=filter_out_uk.sum(axis=1)
+df[('total','bbf_uk_group_total')]=filter_in_uk.sum(axis=1)
+
 st.write('check total equals zero',df['total'].sum(),'close enough its 11')
 
 quarter_4=df.loc[df[('quarter','quarter')]==4]
@@ -93,7 +106,8 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 
 def filter_total(df):
     df=df.droplevel(0,axis=1)
-    df=df.loc[:,['fiscal_year','calendar_year','quarter','date','Account Code','acc_sch','total',
+    df=df.loc[:,['fiscal_year','calendar_year','quarter','date','Account Code','acc_sch','total','9sdil_total','bbf_group_total','bbf_irl_group_total',
+    'bbf_uk_group_total',
     'Description','Code','Classification 9SMG','Classification Stats','Sub-Classification Stats']]
     df = df.merge (coding_acc_schedule, on='Account Code',how='outer')
 
@@ -109,16 +123,25 @@ pl_data=annual.query('`acc_sch`>919')
 
 # st.write('check this',pl_data)    
 
-def pl_generation(clean_data,category_to_filter_on): 
-    clean_data = clean_data.groupby(category_to_filter_on).agg ( YTD_Amount = ( 'total','sum' ),
+def pl_generation(clean_data,category_to_filter_on,total): 
+    clean_data = clean_data.groupby(category_to_filter_on).agg ( YTD_Amount = ( total,'sum' ),
     Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
     clean_data = clean_data.reset_index()
     # clean_data=clean_data.rename(columns=kwargs)
     return clean_data
 
-check_data=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Name'])
+def pl_generation_multiple(clean_data,category_to_filter_on): 
+    clean_data = clean_data.groupby(category_to_filter_on).agg ( YTD_Amount = ( 'total','sum' ), bbf_total=( 'bbf_group_total','sum' ),
+    dil_total=( '9sdil_total','sum' ),bbf_uk_group_total=( 'bbf_uk_group_total','sum' ),bbf_irl_group_total=( 'bbf_irl_group_total','sum' ),
+    Sorting = ('Sorting','first') ).sort_values(by=['Sorting'], ascending = [True])
+    clean_data = clean_data.reset_index()
+    # clean_data=clean_data.rename(columns=kwargs)
+    return clean_data
+
+check_data=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Name'],total='total')
+totals_data=pl_generation_multiple(pl_data,category_to_filter_on=['fiscal_year','Name'])
 # st.write(check_data)
-check_data_acc_code=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Account Code'])
+check_data_acc_code=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Account Code'],total='total')
 
 # need to filter by year
 pl_2020=check_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
@@ -127,10 +150,19 @@ pl_2018=check_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_y
 pl_2017=check_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
 pl_2016=check_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
 
-st.write('checking pl 2020',pl_2020)
-pl_2019_acc_code=check_data_acc_code.query('`fiscal_year`==2019').set_index('Account Code').drop('fiscal_year',axis=1)
-st.write('PL by account code for 2020', pl_2019_acc_code)
-st.markdown(get_table_download_link(pl_2019_acc_code), unsafe_allow_html=True)
+pl_2020_totals=totals_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
+pl_2019_totals=totals_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
+pl_2018_totals=totals_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_year',axis=1)
+pl_2017_totals=totals_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
+pl_2016_totals=totals_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
+
+
+
+
+st.write('checking pl 2017',pl_2017)
+pl_2017_acc_code=check_data_acc_code.query('`fiscal_year`==2017').set_index('Account Code').drop('fiscal_year',axis=1)
+st.write('PL by account code for 2020', pl_2017_acc_code)
+st.markdown(get_table_download_link(pl_2017_acc_code), unsafe_allow_html=True)
 
 def clean_format_PL_presentation(x, coding_sort):
     gross_profit = x.reindex(['Revenue','Cost of Sales']).sum()
@@ -173,3 +205,9 @@ st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':
 # st.write('2016', pl_2016)
 # df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
 
+pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort)
+subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
+pl_2020_totals['check_total']=subtotal.sum(axis=1)
+pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
+# st.write(subtotal)
+st.write(pl_2020_totals)
