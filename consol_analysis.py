@@ -178,7 +178,8 @@ def clean_format_PL_presentation(x, coding_sort):
         else:
             return 0 #also tryed N
     x.loc['EBITDA'] = gross_profit + sub_total_overheads + check(x,'IP Capitalisation')
-    x.loc['Net Profit before Tax'] = x.loc['EBITDA'] + check(x,'Depreciation') + check(x,'Finance Lease Interest')
+    x.loc['Net Profit before Tax and Amortisation'] = x.loc['EBITDA'] + check(x,'Depreciation') + check(x,'Finance Lease Interest')
+    x.loc['Net Profit before Tax'] = x.loc['EBITDA'] + check(x,'Depreciation') + check(x,'Finance Lease Interest')+check(x,'Amortisation Intangible Asset')
     x.loc['Net Profit after Tax'] = x.loc['Net Profit before Tax'] + x.loc['Tax']
     x.loc['Net Profit %'] = (x.loc['Net Profit after Tax'] / x.loc['Revenue'])*100
     x = pd.merge (x,coding_sort, on=['Name'],how='inner')
@@ -192,6 +193,29 @@ def clean_format_PL_presentation(x, coding_sort):
 def clean(data,year_column,coding_sort):
     x=clean_format_PL_presentation(data,coding_sort)
     return x.rename(columns={'YTD_Amount':year_column})
+
+def pretty_pl_format(df):
+    # If you want to see GP % at one decimal point just change the below to 0.1f it will change everything but is a workaround
+    df= df.applymap('{:,.0f}'.format)
+    df.loc['Gross Profit %']= df.loc['Gross Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
+    df.loc['Net Profit %']= df.loc['Net Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
+    # df= df.applymap('{:,.0f}'.format)
+    return df
+
+def format_pl(x):
+    # return x.style.format("{:,.0f}",na_rep="-")
+    return x.style.format("{:,.0f}",na_rep="-").applymap(color_negative_red)
+    # .format(background_gradient(cmap='Blues'))
+
+def color_negative_red(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for negative
+    strings, black otherwise.
+    """
+    color = 'red' if val < 0 else 'black'
+    return 'color: %s' % color
+
 
 pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
 pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
@@ -210,4 +234,4 @@ subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']
 pl_2020_totals['check_total']=subtotal.sum(axis=1)
 pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
 # st.write(subtotal)
-st.write(pl_2020_totals)
+st.write(format_pl( pl_2020_totals.drop('Sorting',axis=1) ))
