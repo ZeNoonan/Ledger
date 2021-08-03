@@ -235,3 +235,4 @@ pl_2020_totals['check_total']=subtotal.sum(axis=1)
 pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
 # st.write(subtotal)
 st.write(format_pl( pl_2020_totals.drop('Sorting',axis=1) ))
+
