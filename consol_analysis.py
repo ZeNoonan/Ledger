@@ -224,15 +224,49 @@ pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
 pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort)
 all_pl=pd.concat([pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
 
-st.write('all', all_pl)
-st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'5,193,050'})
-# st.write('2016', pl_2016)
-# df = df.merge (coding_acc_schedule, on='Acc_Number',how='outer')
+st.write('all', format_pl(all_pl))
+st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
 
-pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort)
-subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
-pl_2020_totals['check_total']=subtotal.sum(axis=1)
-pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
-# st.write(subtotal)
-st.write(format_pl( pl_2020_totals.drop('Sorting',axis=1) ))
+result_2019={'bbf_irl':-309092,'bbf_uk':2874602,'9sdil':2036498}
+result_2018={'bbf_irl':1007342,'bbf_uk':1673615,'9sdil':3119755}
+result_2017={'bbf_irl':973928,'bbf_uk':1038459,'9sdil':3180662}
+result_2016={'bbf_irl':1375500,'bbf_uk':1349304,'9sdil':1673490}
+# st.write('2020',result_2020)
 
+
+# https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
+pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
+    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2020'))
+pl_2019_totals=clean(pl_2019_totals,year_column='2019',coding_sort=coding_sort).drop(['2019','bbf_total'],axis=1).assign(newlevel='2019')\
+    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2019'))
+pl_2018_totals=clean(pl_2018_totals,year_column='2018',coding_sort=coding_sort).drop(['2018','bbf_total'],axis=1).assign(newlevel='2018')\
+    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2018'))
+pl_2017_totals=clean(pl_2017_totals,year_column='2017',coding_sort=coding_sort).drop(['2017','bbf_total'],axis=1).assign(newlevel='2017')\
+    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2017'))
+pl_2016_totals=clean(pl_2016_totals,year_column='2016',coding_sort=coding_sort).drop(['2016','bbf_total'],axis=1).assign(newlevel='2016')\
+    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2016'))
+
+def test_total():
+    subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
+    pl_2020_totals['check_total']=subtotal.sum(axis=1)
+    pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
+    return pl_2020_totals
+
+st.write(format_pl( pl_2020_totals ))
+st.write(format_pl( pl_2019_totals ))
+st.write(format_pl( pl_2018_totals ))
+st.write(format_pl( pl_2017_totals ))
+st.write(format_pl( pl_2016_totals ))
+
+check_2020=pl_2020_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+# total_check=pd.DataFrame(result_2020,index=['Net Profit after Tax']).melt(value_vars='Net Profit after Tax')
+
+result_2020=[{'index':'bbf_irl_group_total','Net Profit after Tax':1902048},{'index':'bbf_uk_group_total',
+'Net Profit after Tax':682433},{'index':'dil_total','Net Profit after Tax':1804120}]
+total_check=pd.DataFrame(result_2020).set_index('index').rename(columns={'Net Profit after Tax':'total'})
+test_check=pd.concat([check_2020,total_check],axis=1)
+test_check['diff']=test_check['total']-test_check['Net Profit after Tax']
+st.write(format_pl(test_check))
+# st.write(total_check)
+
+# st.write(check_2020)
