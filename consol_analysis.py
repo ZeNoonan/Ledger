@@ -70,11 +70,9 @@ cols_to_move = [('fiscal_year', 'fiscal_year'),('calendar_year', 'calendar_year'
  ('Classification 9SMG', 'Classification 9SMG'), ('Classification Stats', 'Classification Stats'), ('Sub-Classification Stats', 'Sub-Classification Stats')]
 cols = cols_to_move + [col for col in df if col not in cols_to_move]
 df=df[cols]
-# st.write('dataframe',df.head())
-# st.write(df.dtypes)
 
+# changing signs of accounting entries below
 df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]=df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]*-1
-st.write(df)
 
 filter_df=(df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})])
 filter_in_dil=(filter_df.loc[:,filter_df.columns.get_level_values(1).isin({"9 Story Dist.", "9SDIL"})])
@@ -82,16 +80,15 @@ filter_out_dil=(filter_df.loc[:,~filter_df.columns.get_level_values(1).isin({"9 
 filter_out_uk=(filter_out_dil.loc[:,~filter_out_dil.columns.get_level_values(1).isin({"BBF UK","NK2","PRS","VMP 2D","Knight","NK2","UK","KPL"})])
 filter_in_uk=(filter_out_dil.loc[:,filter_out_dil.columns.get_level_values(1).isin({"BBF UK","NK2","PRS","VMP 2D","Knight","NK2","UK","KPL"})])
 df[('total','total')]=filter_df.sum(axis=1)
-# df[('total','total')]=-df[('total','total')]
 df[('total','9sdil_total')]=filter_in_dil.sum(axis=1)
 df[('total','bbf_group_total')]=filter_out_dil.sum(axis=1)
 df[('total','bbf_irl_group_total')]=filter_out_uk.sum(axis=1)
 df[('total','bbf_uk_group_total')]=filter_in_uk.sum(axis=1)
 
-st.write('check total equals zero',df['total'].sum(),'close enough its 11')
-
-quarter_4=df.loc[df[('quarter','quarter')]==4]
-st.write('check q4 totals',quarter_4['total'].sum(),"that works equal to 3")
+with st.beta_expander('Checking Totals'):
+    st.write('check total equals zero',df['total'].sum(),'close enough its 11')
+    quarter_4=df.loc[df[('quarter','quarter')]==4]
+    st.write('check q4 totals',quarter_4['total'].sum(),"that works equal to 3")
 
 # st.write('check q4',quarter_4.head())
 
@@ -116,12 +113,9 @@ def filter_total(df):
 annual=filter_total(quarter_4)
 x=annual.query('`acc_sch`>919')
 x=x[x['Sorting'].isna()]
-st.write('should be blank!! below',x)
+# st.write('should be blank!! below',x)
 pl_data=annual.query('`acc_sch`>919')
 
-# st.markdown(get_table_download_link(x), unsafe_allow_html=True)
-
-# st.write('check this',pl_data)    
 
 def pl_generation(clean_data,category_to_filter_on,total): 
     clean_data = clean_data.groupby(category_to_filter_on).agg ( YTD_Amount = ( total,'sum' ),
@@ -159,10 +153,10 @@ pl_2016_totals=totals_data.query('`fiscal_year`==2016').set_index('Name').drop('
 
 
 
-st.write('checking pl 2017',pl_2017)
-pl_2017_acc_code=check_data_acc_code.query('`fiscal_year`==2017').set_index('Account Code').drop('fiscal_year',axis=1)
-st.write('PL by account code for 2020', pl_2017_acc_code)
-st.markdown(get_table_download_link(pl_2017_acc_code), unsafe_allow_html=True)
+# st.write('checking pl 2017',pl_2017)
+# pl_2017_acc_code=check_data_acc_code.query('`fiscal_year`==2017').set_index('Account Code').drop('fiscal_year',axis=1)
+# st.write('PL by account code for 2020', pl_2017_acc_code)
+# st.markdown(get_table_download_link(pl_2017_acc_code), unsafe_allow_html=True)
 
 def clean_format_PL_presentation(x, coding_sort):
     gross_profit = x.reindex(['Revenue','Cost of Sales']).sum()
@@ -216,57 +210,108 @@ def color_negative_red(val):
     color = 'red' if val < 0 else 'black'
     return 'color: %s' % color
 
+with st.beta_expander('Full group by year'):
+    pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
+    pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
+    pl_2018=clean(pl_2018,year_column='2018',coding_sort=coding_sort)
+    pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
+    pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort)
+    all_pl=pd.concat([pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
 
-pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
-pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
-pl_2018=clean(pl_2018,year_column='2018',coding_sort=coding_sort)
-pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
-pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort)
-all_pl=pd.concat([pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
-
-st.write('all', format_pl(all_pl))
-st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
-
-result_2019={'bbf_irl':-309092,'bbf_uk':2874602,'9sdil':2036498}
-result_2018={'bbf_irl':1007342,'bbf_uk':1673615,'9sdil':3119755}
-result_2017={'bbf_irl':973928,'bbf_uk':1038459,'9sdil':3180662}
-result_2016={'bbf_irl':1375500,'bbf_uk':1349304,'9sdil':1673490}
-# st.write('2020',result_2020)
+    st.write('all', format_pl(all_pl))
+    st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
 
 
-# https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
-pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
-    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2020'))
-pl_2019_totals=clean(pl_2019_totals,year_column='2019',coding_sort=coding_sort).drop(['2019','bbf_total'],axis=1).assign(newlevel='2019')\
-    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2019'))
-pl_2018_totals=clean(pl_2018_totals,year_column='2018',coding_sort=coding_sort).drop(['2018','bbf_total'],axis=1).assign(newlevel='2018')\
-    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2018'))
-pl_2017_totals=clean(pl_2017_totals,year_column='2017',coding_sort=coding_sort).drop(['2017','bbf_total'],axis=1).assign(newlevel='2017')\
-    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2017'))
-pl_2016_totals=clean(pl_2016_totals,year_column='2016',coding_sort=coding_sort).drop(['2016','bbf_total'],axis=1).assign(newlevel='2016')\
-    .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2016'))
+with st.beta_expander('PL for each group for each year'):
+    # https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
+    pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2020'))
+    pl_2019_totals=clean(pl_2019_totals,year_column='2019',coding_sort=coding_sort).drop(['2019','bbf_total'],axis=1).assign(newlevel='2019')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2019'))
+    pl_2018_totals=clean(pl_2018_totals,year_column='2018',coding_sort=coding_sort).drop(['2018','bbf_total'],axis=1).assign(newlevel='2018')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2018'))
+    pl_2017_totals=clean(pl_2017_totals,year_column='2017',coding_sort=coding_sort).drop(['2017','bbf_total'],axis=1).assign(newlevel='2017')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2017'))
+    pl_2016_totals=clean(pl_2016_totals,year_column='2016',coding_sort=coding_sort).drop(['2016','bbf_total'],axis=1).assign(newlevel='2016')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2016'))
 
-def test_total():
-    subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
-    pl_2020_totals['check_total']=subtotal.sum(axis=1)
-    pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
-    return pl_2020_totals
+    def test_total():
+        subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
+        pl_2020_totals['check_total']=subtotal.sum(axis=1)
+        pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
+        return pl_2020_totals
 
-st.write(format_pl( pl_2020_totals ))
-st.write(format_pl( pl_2019_totals ))
-st.write(format_pl( pl_2018_totals ))
-st.write(format_pl( pl_2017_totals ))
-st.write(format_pl( pl_2016_totals ))
+    st.write(format_pl( pl_2020_totals ))
+    st.write(format_pl( pl_2019_totals ))
+    st.write(format_pl( pl_2018_totals ))
+    st.write(format_pl( pl_2017_totals ))
+    st.write(format_pl( pl_2016_totals ))
 
-check_2020=pl_2020_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
-# total_check=pd.DataFrame(result_2020,index=['Net Profit after Tax']).melt(value_vars='Net Profit after Tax')
+    test_concat=pd.concat([pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    # st.write('test',test_concat)
+    check_test=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index()
+    check_test_1=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Net Profit before Tax and Amortisation':'net_profit'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    # check_test_1['date']=pd.to_datetime(check_test_1['date'])
+    # st.write(check_test)
+    st.write(check_test_1)
 
-result_2020=[{'index':'bbf_irl_group_total','Net Profit after Tax':1902048},{'index':'bbf_uk_group_total',
-'Net Profit after Tax':682433},{'index':'dil_total','Net Profit after Tax':1804120}]
-total_check=pd.DataFrame(result_2020).set_index('index').rename(columns={'Net Profit after Tax':'total'})
-test_check=pd.concat([check_2020,total_check],axis=1)
-test_check['diff']=test_check['total']-test_check['Net Profit after Tax']
-st.write(format_pl(test_check))
-# st.write(total_check)
+    selection_3 = alt.selection_multi(fields=['location'], bind='legend')
+    scale_3=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total'],range=['blue','red'])
+    test_run_3=alt.Chart(check_test_1).mark_bar(size=80).encode(
+    # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
+    alt.X('date:O',axis=alt.Axis(title='date')),
+    # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
+    alt.Y('net_profit:Q'),
+    color=alt.Color('location:N',scale=scale_3,sort=alt.SortField("location", "descending")),order="location:O",
+    opacity=alt.condition(selection_3, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'net_profit': [5000000]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='net_profit:Q')
+    # text=test_run_3.mark_text(align='left',baseline='middle',dx=5).encode(text=alt.Text('net_profit:Q',format = ",.0f"))
+    # text=test_run_3.mark_text().encode(x=alt.X('date:O'),y=alt.Y('net_profit:Q'),detail='location:N',text=alt.Text('net_profit:Q',format = ",.0f"))
+    # updated_test_chart = alt.layer(test_run_3,vline,text)
+    updated_test_chart = alt.layer(test_run_3)
 
-# st.write(check_2020)
+    st.write('Select and press shift to highlight locations')
+
+    st.altair_chart((updated_test_chart).add_selection(selection_3),use_container_width=True)
+    net_profit_table=check_test_1.pivot(index='date',values='net_profit',columns='location').reset_index()
+    # st.write(net_profit_table.sort_values(by='date',ascending=False).style.format({'bbf_irl_group_total':"{:,.0f}",'bbf_uk_group_total':"{:,.0f}",'date':"{:%Y}"}))
+    st.write(net_profit_table.sort_values(by='date',ascending=False).style.format({'bbf_irl_group_total':"{:,.0f}",'bbf_uk_group_total':"{:,.0f}"}))
+
+
+
+
+
+with st.beta_expander('Check PL v. Stats'):
+
+    result_2020=[{'index':'bbf_irl_group_total','Net Profit after Tax':1902048},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':682433},{'index':'dil_total','Net Profit after Tax':1804120}]
+    result_2019=[{'index':'bbf_irl_group_total','Net Profit after Tax':-309092},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':2874602},{'index':'dil_total','Net Profit after Tax':2036498}]
+    result_2018=[{'index':'bbf_irl_group_total','Net Profit after Tax':1007342},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':1673615},{'index':'dil_total','Net Profit after Tax':3119755}]
+    result_2017=[{'index':'bbf_irl_group_total','Net Profit after Tax':973928},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':1038459},{'index':'dil_total','Net Profit after Tax':3180662}]
+    result_2016=[{'index':'bbf_irl_group_total','Net Profit after Tax':1375500},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':1349304},{'index':'dil_total','Net Profit after Tax':1673490}]
+
+    check_2020=pl_2020_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+    check_2019=pl_2019_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+    check_2018=pl_2018_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+    check_2017=pl_2017_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+    check_2016=pl_2016_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
+
+    def check_bottom_line(result_2020,check_2020):
+        total_check=pd.DataFrame(result_2020).set_index('index').rename(columns={'Net Profit after Tax':'stats'})
+        test_check=pd.concat([check_2020,total_check],axis=1)
+        test_check['diff']=test_check['stats']-test_check['Net Profit after Tax']
+        return test_check
+
+
+    st.write('2020 check',format_pl(check_bottom_line(result_2020,check_2020)))
+    st.write('2019 check',format_pl(check_bottom_line(result_2019,check_2019)))
+    st.write('2018 check',format_pl(check_bottom_line(result_2018,check_2018)))
+    st.write('2017 check',format_pl(check_bottom_line(result_2017,check_2017)))
+    st.write('2016 check',format_pl(check_bottom_line(result_2016,check_2016)))
