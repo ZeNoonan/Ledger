@@ -6,10 +6,14 @@ import altair as alt
 from streamlit_echarts import st_echarts
 
 st.set_page_config(layout="wide")
+
+# st.header('Get detail listing of employees by Department good sense check')
+
+
 st.write('Select start of forecast period below and actual')
 with st.echo():
     # start_forecast_period_resourcing_tool='2021-07-01 00:00:00'
-    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx'
+    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_11.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
     data_2018='C:/Users/Darragh/Documents/Python/Work/Data/nl_18.xlsx'
@@ -20,17 +24,17 @@ with st.echo():
 
 @st.cache
 def load_ledger_data(x):
-    return pd.read_excel(x)
+    return pd.read_excel(x,na_values=np.nan)
 
 forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/resource_planner_export_11_06_2021.xlsx')
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
-cached_2019=load_ledger_data(data_2019).copy()
-cached_2018=load_ledger_data(data_2018).copy()
-cached_2017=load_ledger_data(data_2017).copy()
-cached_2016=load_ledger_data(data_2016).copy()
-cached_2015=load_ledger_data(data_2015).copy()
-cached_2014=load_ledger_data(data_2014).copy()
+# cached_2019=load_ledger_data(data_2019).copy()
+# cached_2018=load_ledger_data(data_2018).copy()
+# cached_2017=load_ledger_data(data_2017).copy()
+# cached_2016=load_ledger_data(data_2016).copy()
+# cached_2015=load_ledger_data(data_2015).copy()
+# cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
     start_forecast_period_resourcing_tool='2021-07-31 00:00:00'
@@ -110,18 +114,18 @@ def nl_raw_clean_file(x, coding_acc_schedule):
 
 NL_Data_21=nl_raw_clean_file(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=nl_raw_clean_file(cached_2020,coding_acc_schedule) # MUTATION
-NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
-NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
-NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
-NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
-NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
-NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
+# NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
+# NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
+# NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
+# NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
+# NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
+# NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
 
 # st.write(NL_Data_19.head())
 
 # consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-# consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
+# consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
 
 
 # cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -286,10 +290,31 @@ with st.beta_expander('Actuals by Dept'):
     # st.write('Overall Headcount to date broken down by Department',bbf_headcount_data.head(5))
     # st.write('mauve', mauve.head(5))
     # st.write('uk', group_UK.head(5))
-    headcount_combined=pd.concat([bbf_headcount_data.reset_index().drop('index',axis=1),mauve.reset_index().drop('index',axis=1),group_UK.reset_index().drop('index',axis=1)])
-    # st.write('data for graph??',headcount_combined.head())
+    headcount_combined=pd.concat([bbf_headcount_data.reset_index().drop('index',axis=1),mauve.reset_index().drop('index',axis=1),
+    group_UK.reset_index().drop('index',axis=1)])
     dept_pivot=pivot_report(headcount_combined,filter='Department')
     st.write(dept_pivot.style.format("{:,.1f}"))
+
+
+
+    # headcount_combined_test=headcount_combined.reset_index().reset_index()
+    # st.write(headcount_combined_test.head())
+    headcount_combined_test=headcount_combined.reset_index().reset_index().rename(columns={'level_0':'id_tracker'}).drop('index',axis=1)
+
+    # st.write('first',headcount_combined_test)
+    # st.write('data for graph??',headcount_combined_test[headcount_combined_test['Employee']==' '])
+    # st.write('data for graph??',headcount_combined_test[headcount_combined_test['Employee'].isnull()])
+    
+    headcount_combined_test['Employee']=headcount_combined_test['Employee'].replace(' ',np.nan)
+    headcount_combined_test['Employee']=headcount_combined_test['Employee'].fillna(headcount_combined_test['Description'])
+
+    # st.write('last',headcount_combined_test)
+    staff_dept_pivot=summary= pd.pivot_table(headcount_combined_test, values='Headcount',index=['Department','Employee'],
+    columns=['date'],margins=True,aggfunc='sum',fill_value=0)
+
+    option=st.selectbox('Select',options=('TV','CG','Post','Admin','HR','IT','Pipeline','Development'),index=3)
+    st.write('Below is Department Detail headcount')
+    st.write(staff_dept_pivot.loc[option])
 
     def data_for_graphing_dept(x, select_level):
         return x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
