@@ -176,6 +176,7 @@ def clean_format_PL_presentation(x, coding_sort):
     x.loc['Net Profit before Tax'] = x.loc['EBITDA'] + check(x,'Depreciation') + check(x,'Finance Lease Interest')+check(x,'Amortisation Intangible Asset')
     x.loc['Net Profit after Tax'] = x.loc['Net Profit before Tax'] + x.loc['Tax']
     x.loc['Net Profit %'] = (x.loc['Net Profit after Tax'] / x.loc['Revenue'])*100
+    x.loc['Net Profit before Tax %'] = (x.loc['Net Profit before Tax and Amortisation'] / x.loc['Revenue'])*100    
     x = pd.merge (x,coding_sort, on=['Name'],how='inner')
     x = x.drop(columns =['Sorting_x'])
     x = x.rename(columns = {'Sorting_y' : 'Sorting'}).sort_values(by ='Sorting', ascending=True)
@@ -193,6 +194,7 @@ def pretty_pl_format(df):
     df= df.applymap('{:,.0f}'.format)
     df.loc['Gross Profit %']= df.loc['Gross Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
     df.loc['Net Profit %']= df.loc['Net Profit %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
+    df.loc['Net Profit before Tax %']= df.loc['Net Profit before Tax %'].str.replace('€','').str.replace(',','').astype(float).apply('{:,.0f}%'.format)
     # df= df.applymap('{:,.0f}'.format)
     return df
 
@@ -259,7 +261,7 @@ with st.beta_expander('PL for each group for each year'):
 
     selection_3 = alt.selection_multi(fields=['location'], bind='legend')
     scale_3=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total'],range=['blue','red'])
-    test_run_3=alt.Chart(check_test_1).mark_bar(size=80).encode(
+    test_run_3=alt.Chart(check_test_1,title='Net Profit by Year by Location').mark_bar(size=80).encode(
     # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
     alt.X('date:O',axis=alt.Axis(title='date')),
     # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
@@ -281,6 +283,74 @@ with st.beta_expander('PL for each group for each year'):
     st.write(net_profit_table.sort_values(by='date',ascending=False).style.format({'bbf_irl_group_total':"{:,.0f}",'bbf_uk_group_total':"{:,.0f}"}))
 
 
+    np_data=test_concat.loc['Net Profit before Tax %'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Net Profit before Tax %':'net_profit_%'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    np_data['net_profit_%']=np_data['net_profit_%']/100
+    net_profit_table_percent=np_data.pivot(index='date',values='net_profit_%',columns='location').reset_index()
+    
+    line=alt.Chart(np_data).mark_line().encode(
+        alt.X('date:O',axis=alt.Axis(title='date')),
+        alt.Y('net_profit_%:Q'),
+        color=alt.Color('location:N'),
+        opacity=alt.OpacityValue(0.3)
+    )
+    labels=alt.Chart(np_data).mark_text().encode(
+        alt.X('date:O',axis=alt.Axis(title='date')),
+        alt.Y('net_profit_%:Q'),
+        alt.Text('net_profit_%:Q',format='.0%')
+        # color=alt.Color('location:N')
+    )
+    updated_test_chart_1=alt.layer(test_run_3,line,labels)
+    st.altair_chart((updated_test_chart_1).resolve_scale(y='independent').add_selection(selection_3),use_container_width=True)
+    st.write(net_profit_table_percent.style.format({'bbf_irl_group_total':"{:,.0%}",'bbf_uk_group_total':"{:,.0%}"}))
+
+with st.beta_expander('Gross Profit Analysis'):
+
+    check_test=test_concat.loc['Gross Profit'].reset_index()
+    check_test_1=test_concat.loc['Gross Profit'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Gross Profit':'gross_profit'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    # check_test_1['date']=pd.to_datetime(check_test_1['date'])
+    # st.write(check_test)
+    st.write(check_test_1)
+
+    selection_3 = alt.selection_multi(fields=['location'], bind='legend')
+    scale_3=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total'],range=['blue','red'])
+    test_run_3=alt.Chart(check_test_1,title='Gross Profit by Year by Location').mark_bar(size=80).encode(
+    # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
+    alt.X('date:O',axis=alt.Axis(title='date')),
+    # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
+    alt.Y('gross_profit:Q'),
+    color=alt.Color('location:N',scale=scale_3,sort=alt.SortField("location", "descending")),order="location:O",
+    opacity=alt.condition(selection_3, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'net_profit': [5000000]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='gross_profit:Q')
+
+    np_data=test_concat.loc['Gross Profit %'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Gross Profit %':'gross_profit_%'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    np_data['gross_profit_%']=np_data['gross_profit_%']/100
+    net_profit_table_percent=np_data.pivot(index='date',values='gross_profit_%',columns='location').reset_index()
+    
+    line=alt.Chart(np_data).mark_line().encode(
+        alt.X('date:O',axis=alt.Axis(title='date')),
+        alt.Y('gross_profit_%:Q',scale=alt.Scale(domain=(0.24,0.42))),
+        color=alt.Color('location:N'),
+        opacity=alt.OpacityValue(0.3)
+    )
+    labels=alt.Chart(np_data).mark_text(dy=-7,fontSize=12).encode(
+        alt.X('date:O',axis=alt.Axis(title='date')),
+        alt.Y('gross_profit_%:Q',scale=alt.Scale(domain=(0.24,0.42))),
+        # alt.Color('location:N'),
+        # alt.Color(scale=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total'],range=['black','white'])),
+        # alt.OpacityValue(0.3),
+        alt.Text('gross_profit_%:Q',format='.0%')
+        # color=alt.Color('location:N')
+    )
+    updated_test_chart_2=alt.layer(test_run_3,line,labels)
+    st.altair_chart((updated_test_chart_2).resolve_scale(y='independent').add_selection(selection_3),use_container_width=True)
+    st.write(net_profit_table_percent.style.format({'bbf_irl_group_total':"{:,.0%}",'bbf_uk_group_total':"{:,.0%}"}))
 
 
 
