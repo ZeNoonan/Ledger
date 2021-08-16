@@ -11,7 +11,7 @@ company_ee_project,combined_921_headcount,pivot_headcount)
 
 st.set_page_config(layout="wide")
 pd.set_option('use_inf_as_na', True)
-current_month_index=9
+current_month_index=10
 select_budget_forecast=3
 
 Budget_2020_Raw, F1_2020_Raw, F2_2020_Raw, F3_2020_Raw = [pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Budget_2021.xlsx',sheet_name=x) 
@@ -24,7 +24,7 @@ Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project
 @st.cache
 def load_ledger_data():
     # return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_06.xlsx')
-    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_10.xlsx')
+    return pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_11.xlsx')
 NL = load_ledger_data().copy()
 # st.write(NL[NL['Project'].str.contains('Eureka')])
 # st.write(Budget_2020_Raw.head(10))

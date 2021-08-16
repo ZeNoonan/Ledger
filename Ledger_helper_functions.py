@@ -410,17 +410,6 @@ def load_16_19_clean(x,coding_acc_schedule):
     NL_update_1['Employee - Ext. Code']=NL_update_1['EE']
     return month_period_clean(NL_update_1)
 
-def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
-    # x=load_ledger_data(forecast_resourcing_file).copy()
-    # forecast_project_mapping=pd.
-    x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project'})
-    # st.write(x)
-    x.columns= x.columns.astype(str)
-    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
-    sliced_x=sliced_x.set_index('Project').unstack(level='Project').reset_index().rename(columns={'level_0':'date',0:'headcount'})
-    sliced_x=sliced_x.groupby(['Project','date'])['headcount'].sum().reset_index()    
-    x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
-    return x
 
 
 
@@ -437,10 +426,6 @@ def headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_di
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
     return pd.concat([actual,forecast_headcount_direct],axis=1)
 
-def headcount_actual_plus_forecast_with_subtotal(merged):
-    merged.loc['All']= merged.sum(numeric_only=True, axis=0)
-    merged.loc[:,'All'] = merged.sum(numeric_only=True, axis=1)
-    return merged.sort_values(by='All',ascending=False)
 
 def data_for_graphing(x):
     return x.unstack(level='Project').reset_index().rename(columns={0:'headcount'})
@@ -716,11 +701,29 @@ def test_forecast_resourcing_dept(x,forecast_project_mapping,start_forecast_peri
     x = pd.pivot_table(sliced_x, values='headcount',index=['Department'], columns=['date'],fill_value=0)
     return x
 
+def forecast_resourcing_function(x,forecast_project_mapping,start_forecast_period_resourcing_tool):
+    # x=load_ledger_data(forecast_resourcing_file).copy()
+    # forecast_project_mapping=pd.
+    x=pd.merge(x,forecast_project_mapping,on='Project',how='outer').drop('Project',axis=1).rename(columns={'Project_name':'Project'})
+    # st.write(x)
+    x.columns= x.columns.astype(str)
+    sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
+    sliced_x=sliced_x.set_index('Project').unstack(level='Project').reset_index().rename(columns={'level_0':'date',0:'headcount'})
+    sliced_x=sliced_x.groupby(['Project','date'])['headcount'].sum().reset_index()    
+    x = pd.pivot_table(sliced_x, values='headcount',index=['Project'], columns=['date'],fill_value=0)
+    return x
+
+
 def new_headcount_actual_plus_forecast(actual_headcount_direct,forecast_headcount_direct):
     actual=actual_headcount_direct.drop('All',axis=1).drop(['All'])
     # forecast=forecast_headcount_direct.drop('All',axis=1).drop(['All'])
     merged_values = pd.concat([actual,forecast_headcount_direct],axis=1).ffill(axis=1)
     return merged_values
+
+def headcount_actual_plus_forecast_with_subtotal(merged):
+    merged.loc['All']= merged.sum(numeric_only=True, axis=0)
+    merged.loc[:,'All'] = merged.sum(numeric_only=True, axis=1)
+    return merged.sort_values(by='All',ascending=False)
 
 def data_for_graphing_dept(x, select_level):
     return x.unstack(level=select_level).reset_index().rename(columns={0:'headcount'}).set_index('date').drop(['All'])\
