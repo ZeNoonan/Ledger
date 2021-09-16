@@ -90,7 +90,7 @@ with st.beta_expander('Checking Totals'):
     quarter_4=df.loc[df[('quarter','quarter')]==4]
     st.write('check q4 totals',quarter_4['total'].sum(),"that works equal to 3")
 
-# st.write('check q4',quarter_4.head())
+# st.write('check q4',quarter_4)
 
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers_updated.xlsx')).iloc[:,:3]
 # coding_acc_schedule['Acc_Number']=coding_acc_schedule['Acc_Number'].str.replace("-",'').astype(float)
@@ -113,8 +113,9 @@ def filter_total(df):
 annual=filter_total(quarter_4)
 x=annual.query('`acc_sch`>919')
 x=x[x['Sorting'].isna()]
-# st.write('should be blank!! below',x)
+st.write('should be blank!! below',x)
 pl_data=annual.query('`acc_sch`>919')
+# st.write('checking pl data', pl_data)
 
 
 def pl_generation(clean_data,category_to_filter_on,total): 
@@ -138,12 +139,14 @@ totals_data=pl_generation_multiple(pl_data,category_to_filter_on=['fiscal_year',
 check_data_acc_code=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Account Code'],total='total')
 
 # need to filter by year
+pl_2021=check_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
 pl_2020=check_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
 pl_2019=check_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
 pl_2018=check_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_year',axis=1)
 pl_2017=check_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
 pl_2016=check_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
 
+pl_2021_totals=totals_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
 pl_2020_totals=totals_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
 pl_2019_totals=totals_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
 pl_2018_totals=totals_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_year',axis=1)
@@ -213,19 +216,22 @@ def color_negative_red(val):
     return 'color: %s' % color
 
 with st.beta_expander('Full group by year'):
+    pl_2021=clean(pl_2021,year_column='2021',coding_sort=coding_sort)
     pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
     pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
     pl_2018=clean(pl_2018,year_column='2018',coding_sort=coding_sort)
     pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
     pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort)
-    all_pl=pd.concat([pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
+    all_pl=pd.concat([pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
 
     st.write('all', format_pl(all_pl))
-    st.write('pl after tax per stats',{'2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
+    st.write('pl after tax per stats',{'2021':'6,868,694','2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
 
 
 with st.beta_expander('PL for each group for each year'):
     # https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
+    pl_2021_totals=clean(pl_2021_totals,year_column='2021',coding_sort=coding_sort).drop(['2021','bbf_total'],axis=1).assign(newlevel='2021')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2021'))
     pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
         .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2020'))
     pl_2019_totals=clean(pl_2019_totals,year_column='2019',coding_sort=coding_sort).drop(['2019','bbf_total'],axis=1).assign(newlevel='2019')\
@@ -243,13 +249,14 @@ with st.beta_expander('PL for each group for each year'):
         pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
         return pl_2020_totals
 
+    st.write(format_pl( pl_2021_totals ))
     st.write(format_pl( pl_2020_totals ))
     st.write(format_pl( pl_2019_totals ))
     st.write(format_pl( pl_2018_totals ))
     st.write(format_pl( pl_2017_totals ))
     st.write(format_pl( pl_2016_totals ))
 
-    test_concat=pd.concat([pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    test_concat=pd.concat([pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
     # st.write('test',test_concat)
     check_test=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index()
     check_test_1=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
@@ -355,6 +362,8 @@ with st.beta_expander('Gross Profit Analysis'):
 
 
 with st.beta_expander('Check PL v. Stats'):
+    result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':6121790},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':-1391583},{'index':'dil_total','Net Profit after Tax':2138487}]
 
     result_2020=[{'index':'bbf_irl_group_total','Net Profit after Tax':1902048},{'index':'bbf_uk_group_total',
     'Net Profit after Tax':682433},{'index':'dil_total','Net Profit after Tax':1804120}]
@@ -367,6 +376,7 @@ with st.beta_expander('Check PL v. Stats'):
     result_2016=[{'index':'bbf_irl_group_total','Net Profit after Tax':1375500},{'index':'bbf_uk_group_total',
     'Net Profit after Tax':1349304},{'index':'dil_total','Net Profit after Tax':1673490}]
 
+    check_2021=pl_2021_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
     check_2020=pl_2020_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
     check_2019=pl_2019_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
     check_2018=pl_2018_totals.loc['Net Profit after Tax'].reset_index().drop('newlevel',axis=1).rename(columns={'level_0':'index'}).set_index('index').drop(index=['Sorting'])
@@ -379,7 +389,7 @@ with st.beta_expander('Check PL v. Stats'):
         test_check['diff']=test_check['stats']-test_check['Net Profit after Tax']
         return test_check
 
-
+    st.write('2021 check',format_pl(check_bottom_line(result_2021,check_2021)))
     st.write('2020 check',format_pl(check_bottom_line(result_2020,check_2020)))
     st.write('2019 check',format_pl(check_bottom_line(result_2019,check_2019)))
     st.write('2018 check',format_pl(check_bottom_line(result_2018,check_2018)))
