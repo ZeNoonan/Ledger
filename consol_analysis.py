@@ -101,7 +101,7 @@ coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_n
 # st.write('coding sort', coding_sort)
 
 
-def filter_total(df):
+def filter_total(df,coding_acc_schedule):
     df=df.droplevel(0,axis=1)
     df=df.loc[:,['fiscal_year','calendar_year','quarter','date','Account Code','acc_sch','total','9sdil_total','bbf_group_total','bbf_irl_group_total',
     'bbf_uk_group_total',
@@ -110,7 +110,12 @@ def filter_total(df):
 
     return df
 
-annual=filter_total(quarter_4)
+annual=filter_total(quarter_4,coding_acc_schedule)
+
+# st.markdown(get_table_download_link(annual), unsafe_allow_html=True)
+# st.write('checking',annual[annual['Classification 9SMG'].isna()])
+# st.write('checking',annual[annual['Classification Stats'].isna()])
+
 x=annual.query('`acc_sch`>919')
 x=x[x['Sorting'].isna()]
 st.write('should be blank!! below',x)
@@ -459,9 +464,64 @@ with st.beta_expander('Gross Profit Analysis'):
 
     st.altair_chart((test_run_3))
 
+with st.beta_expander('Headcount'):
+    with st.echo():
+        # comes from headcount python file
+        headcount_data = pd.read_pickle('C:/Users/Darragh/Documents/Python/Work/Data/headcount_summary.pkl').reset_index()
+    # st.write(headcount_data)
+    headcount_data['calendar_year']=headcount_data['date'].dt.year
+    headcount_data['calendar_month']=headcount_data['date'].dt.month
+    headcount_data['fiscal_month']=headcount_data['calendar_month'].map({9:1,10:2,11:3,12:4,1:5,2:6,3:7,4:8,5:9,6:10,7:11,8:12})
+    headcount_data['fiscal_year'] = np.where((headcount_data['fiscal_month'] > 4.1), headcount_data['calendar_year'], headcount_data['calendar_year']+1)
+    average_data = headcount_data.groupby('fiscal_year').agg ( bbf_irl = ( 'bbf','mean' ), uk=( 'uk','mean' ), mauve=( 'mauve','mean' )).reset_index()
+    # drop 2014 -2015 as don't need those
+    average_data=average_data.loc[(average_data['fiscal_year']>2015),:].reset_index().drop('index',axis=1).rename(columns={'fiscal_year':'date'})
+    # st.write(average_data)
+    data_table=pd.melt(average_data,id_vars='date',value_vars=['bbf_irl','uk','mauve'],value_name='net_profit',var_name='location')
+    # st.write(data_table)
 
+    selection_3 = alt.selection_multi(fields=['location'], bind='legend')
+    scale_3=alt.Scale(domain=['bbf_irl','uk','mauve'],range=['blue','red','green'])
+    test_run_3=alt.Chart(data_table,title='Headcount by Year').mark_bar(size=80).encode(
+    # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
+    alt.X('date:O',axis=alt.Axis(title='year')),
+    # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
+    alt.Y('net_profit:Q'),
+    color=alt.Color('location:N',scale=scale_3,sort=alt.SortField("location", "descending")),order="location:O",
+    opacity=alt.condition(selection_3, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'net_profit': [300]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='net_profit:Q')
+    # text=test_run_3.mark_text(align='left',baseline='middle',dx=5).encode(text=alt.Text('net_profit:Q',format = ",.0f"))
+    # text=test_run_3.mark_text().encode(x=alt.X('date:O'),y=alt.Y('net_profit:Q'),detail='location:N',text=alt.Text('net_profit:Q',format = ",.0f"))
+    # updated_test_chart = alt.layer(test_run_3,vline,text)
+    updated_test_chart = alt.layer(test_run_3,vline)
+    # updated_test_chart = alt.layer(test_run_3)
 
+    st.write('Select and press shift to highlight locations')
 
+    st.altair_chart((updated_test_chart).add_selection(selection_3),use_container_width=True)
+
+with st.beta_expander('Cashflow'):
+    st.write('cashflow')
+    acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers_updated.xlsx', sheet_name='Sheet3')).iloc[:,:3]
+    acc_schedule=acc_schedule.rename(columns={'Acc_Number':'Account Code'})
+    # st.write(quarter_4)
+    
+    annual_data=filter_total(quarter_4,acc_schedule)
+    annual_data_bs=annual_data.query('`acc_sch`<920')
+    # st.write(annual_data)
+    annual_data=pl_generation(annual_data_bs,category_to_filter_on=['fiscal_year','Name'],total='total')
+
+    cash_2021=annual_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2020=annual_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2019=annual_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2018=annual_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2017=annual_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2016=annual_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
+
+    st.write('bs 2021', cash_2021)
+    st.write('bs 2021 total', cash_2021.sum())
+    st.write('bs 2020', cash_2020)
 
 with st.beta_expander('Check PL v. Stats'):
     result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':6121790},{'index':'bbf_uk_group_total',
