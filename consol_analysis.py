@@ -151,6 +151,13 @@ pl_2018=check_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_y
 pl_2017=check_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
 pl_2016=check_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
 
+pl_2021_data=pl_2021.copy()
+pl_2020_data=pl_2020.copy()
+pl_2019_data=pl_2019.copy()
+pl_2018_data=pl_2018.copy()
+pl_2017_data=pl_2017.copy()
+pl_2016_data=pl_2016.copy()
+
 pl_2021_totals=totals_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
 pl_2020_totals=totals_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
 pl_2019_totals=totals_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
@@ -512,16 +519,32 @@ with st.beta_expander('Cashflow'):
     # st.write(annual_data)
     annual_data=pl_generation(annual_data_bs,category_to_filter_on=['fiscal_year','Name'],total='total')
 
-    cash_2021=annual_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
-    cash_2020=annual_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
+    cash_2021=annual_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1).rename(columns={'YTD_Amount':'2021'})
+    cash_2020=annual_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1).rename(columns={'YTD_Amount':'2020'})
     cash_2019=annual_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
     cash_2018=annual_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_year',axis=1)
     cash_2017=annual_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
     cash_2016=annual_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
+    pl_2021_data=pl_2021_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
 
-    st.write('bs 2021', cash_2021)
+    new_df=pd.concat([cash_2021,cash_2020],axis=1).drop('Sorting',axis=1).reset_index()
+
+    # filt=((~new_df['Name']=='Cash at Bank') & (~new_df['Name']=='Profit and Loss Account'))
+    filt=~new_df['Name'].isin({'Cash at Bank','Profit and Loss Account','Dividends'})
+
+    new_df['diff']=new_df['2021']-new_df['2020']
+    new_df['bank']=new_df['diff'].where(filt)
+    st.write('diff',new_df)
+    st.write(new_df['bank'].sum())
+    # new_df.loc[~df.index.str.contains]
+    # st.markdown(get_table_download_link(new_df), unsafe_allow_html=True)
+
+    # st.write('bs 2021', cash_2021)
+
     st.write('bs 2021 total', cash_2021.sum())
-    st.write('bs 2020', cash_2020)
+    st.write('pl 2021', pl_2021_data)
+    # st.write('bs 2020', cash_2020)
+
 
 with st.beta_expander('Check PL v. Stats'):
     result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':6121790},{'index':'bbf_uk_group_total',
