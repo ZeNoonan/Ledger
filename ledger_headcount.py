@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")
 st.write('Select start of forecast period below and actual')
 with st.echo():
     # start_forecast_period_resourcing_tool='2021-07-01 00:00:00'
-    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_11.xlsx'
+    data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_12.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
     data_2018='C:/Users/Darragh/Documents/Python/Work/Data/nl_18.xlsx'
@@ -29,12 +29,12 @@ def load_ledger_data(x):
 forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/resource_planner_export_11_06_2021.xlsx')
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
-# cached_2019=load_ledger_data(data_2019).copy()
-# cached_2018=load_ledger_data(data_2018).copy()
-# cached_2017=load_ledger_data(data_2017).copy()
-# cached_2016=load_ledger_data(data_2016).copy()
-# cached_2015=load_ledger_data(data_2015).copy()
-# cached_2014=load_ledger_data(data_2014).copy()
+cached_2019=load_ledger_data(data_2019).copy()
+cached_2018=load_ledger_data(data_2018).copy()
+cached_2017=load_ledger_data(data_2017).copy()
+cached_2016=load_ledger_data(data_2016).copy()
+cached_2015=load_ledger_data(data_2015).copy()
+cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
     start_forecast_period_resourcing_tool='2021-07-31 00:00:00'
@@ -114,18 +114,18 @@ def nl_raw_clean_file(x, coding_acc_schedule):
 
 NL_Data_21=nl_raw_clean_file(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=nl_raw_clean_file(cached_2020,coding_acc_schedule) # MUTATION
-# NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
-# NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
-# NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
-# NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
-# NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
-# NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
+NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
+NL_Data_18=nl_raw_clean_file(cached_2018,coding_acc_schedule)
+NL_Data_17=nl_raw_clean_file(cached_2017,coding_acc_schedule)
+NL_Data_16=nl_raw_clean_file(cached_2016,coding_acc_schedule)
+NL_Data_15=nl_raw_clean_file(cached_2015,coding_acc_schedule)
+NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
 
 # st.write(NL_Data_19.head())
 
 # consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-# consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
+consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+# consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
 
 
 # cleaned_data=clean_wrangle_headcount(consol_headcount_data)
@@ -259,6 +259,7 @@ with st.beta_expander('Totals by location by month'):
     graphing_location_dept = summary.drop('total',axis=1).copy()
     # st.write('graphing data', graphing_location_dept)
     summary=summary.set_index('date').sort_index(ascending=False)
+    summary.to_pickle('C:/Users/Darragh/Documents/Python/Work/Data/headcount_summary.pkl')
     st.write(summary.style.format("{:,.0f}"))
     test_test=summary.drop('total',axis=1).copy()
     test_melt = pd.melt(test_test,var_name='location',value_name='headcount',ignore_index=False).reset_index()
@@ -552,6 +553,8 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
     st.write('This puts a line over graph which selects the data points')
     st.altair_chart(updated_chart,use_container_width=True)
 
+    # st.write('checking for the error', data_month_2)
+    
     sequels=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
             '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
             "1-Z-163 Karma's World","1-Z-781 KarmasWorld2"]
