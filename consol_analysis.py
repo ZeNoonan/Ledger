@@ -541,8 +541,28 @@ with st.beta_expander('Cashflow'):
 
     # st.write('bs 2021', cash_2021)
 
-    st.write('bs 2021 total', cash_2021.sum())
+    st.write('bs 2021 TOTAL', cash_2021.sum())
     st.write('pl 2021', pl_2021_data)
+    st.write('Dividends')
+    dividends=new_df.loc[(new_df['Name']=='Dividends')].drop('bank',axis=1)
+    dividends['bank']=dividends['2021']
+    dividends=dividends.loc[:,['Name','bank']].reset_index().drop('index',axis=1)
+    st.write(dividends)
+    bs_cash = new_df.loc[:,['Name','bank']]
+    pl_dividends=pd.concat([pl_2021_data,dividends,bs_cash],axis=0)
+    
+    st.write('concat',pl_dividends)
+    st.write('cashflow statement',pl_dividends['bank'].sum())
+    st.write('Test dataframe')
+    test_df=pd.DataFrame(columns=['bank'],data=[pl_dividends['bank'].sum()])
+    test_df['Name']='Cash at Bank'
+    st.write('test',test_df)
+    cash_check=new_df.loc[(new_df['Name']=='Cash at Bank')].drop(['2021','2020','bank'],axis=1).rename(columns={'diff':'bank'})
+    st.write('balance sheet cash movement', cash_check)
+    checking_cash_test = pd.concat([cash_check,test_df],axis=0).set_index('Name')
+    checking_cash_test.loc['total']=checking_cash_test['bank'].sum()
+    st.write(checking_cash_test)
+    # st.write('pl 2021 total', pl_2021_data.sum())
     # st.write('bs 2020', cash_2020)
 
 
