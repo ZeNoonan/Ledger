@@ -519,6 +519,8 @@ with st.beta_expander('Cashflow'):
     # st.write(annual_data)
     annual_data=pl_generation(annual_data_bs,category_to_filter_on=['fiscal_year','Name'],total='total')
 
+    # cash_2021=annual_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
+    # cash_2020=annual_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
     cash_2021=annual_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1).rename(columns={'YTD_Amount':'2021'})
     cash_2020=annual_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1).rename(columns={'YTD_Amount':'2020'})
     cash_2019=annual_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
@@ -526,42 +528,51 @@ with st.beta_expander('Cashflow'):
     cash_2017=annual_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
     cash_2016=annual_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
     pl_2021_data=pl_2021_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    pl_2020_data=pl_2020_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    pl_2019_data=pl_2019_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    pl_2018_data=pl_2018_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    pl_2017_data=pl_2017_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    pl_2016_data=pl_2016_data.rename(columns={'YTD_Amount':'bank'}).drop('Sorting',axis=1).reset_index()
+    # st.write('cash 2021', cash_2021)
+    # st.write('cash 2020', cash_2020)
 
-    new_df=pd.concat([cash_2021,cash_2020],axis=1).drop('Sorting',axis=1).reset_index()
 
-    # filt=((~new_df['Name']=='Cash at Bank') & (~new_df['Name']=='Profit and Loss Account'))
-    filt=~new_df['Name'].isin({'Cash at Bank','Profit and Loss Account','Dividends'})
+    def cashflow_working(cash_current,cash_prior):
 
-    new_df['diff']=new_df['2021']-new_df['2020']
-    new_df['bank']=new_df['diff'].where(filt)
-    st.write('diff',new_df)
-    st.write(new_df['bank'].sum())
-    # new_df.loc[~df.index.str.contains]
-    # st.markdown(get_table_download_link(new_df), unsafe_allow_html=True)
+        new_df=pd.concat([cash_current,cash_prior],axis=1).drop('Sorting',axis=1).reset_index()
+        filt=~new_df['Name'].isin({'Cash at Bank','Profit and Loss Account','Dividends'})
+        new_df['diff']=new_df.iloc[:,1]-new_df.iloc[:,2]
+        new_df['bank']=new_df['diff'].where(filt)
+        return new_df
 
-    # st.write('bs 2021', cash_2021)
+    cashflow_workings_2021 = cashflow_working(cash_current=cash_2021,cash_prior=cash_2020)
+    st.write(cashflow_workings_2021)
 
-    st.write('bs 2021 TOTAL', cash_2021.sum())
-    st.write('pl 2021', pl_2021_data)
-    st.write('Dividends')
-    dividends=new_df.loc[(new_df['Name']=='Dividends')].drop('bank',axis=1)
-    dividends['bank']=dividends['2021']
-    dividends=dividends.loc[:,['Name','bank']].reset_index().drop('index',axis=1)
-    st.write(dividends)
-    bs_cash = new_df.loc[:,['Name','bank']]
-    pl_dividends=pd.concat([pl_2021_data,dividends,bs_cash],axis=0)
+    def cashflow_statement(cash_workings_returned=cashflow_workings_2021,pl=pl_2021_data):
+        dividends=cash_workings_returned.loc[(cash_workings_returned['Name']=='Dividends')].drop('bank',axis=1)
+        dividends['bank']=dividends.iloc[:,1]
+        dividends=dividends.loc[:,['Name','bank']].reset_index().drop('index',axis=1)
+        bs_cash = cash_workings_returned.loc[:,['Name','bank']]
+        cashflow_statement=pd.concat([pl,dividends,bs_cash],axis=0).reset_index().drop('index',axis=1)
+        return cashflow_statement
     
-    st.write('concat',pl_dividends)
-    st.write('cashflow statement',pl_dividends['bank'].sum())
-    st.write('Test dataframe')
-    test_df=pd.DataFrame(columns=['bank'],data=[pl_dividends['bank'].sum()])
-    test_df['Name']='Cash at Bank'
-    st.write('test',test_df)
-    cash_check=new_df.loc[(new_df['Name']=='Cash at Bank')].drop(['2021','2020','bank'],axis=1).rename(columns={'diff':'bank'})
-    st.write('balance sheet cash movement', cash_check)
-    checking_cash_test = pd.concat([cash_check,test_df],axis=0).set_index('Name')
-    checking_cash_test.loc['total']=checking_cash_test['bank'].sum()
-    st.write(checking_cash_test)
+    cashflow_2021=cashflow_statement(cash_workings_returned=cashflow_workings_2021,pl=pl_2021_data)
+    st.write(cashflow_2021)
+
+    def cashflow_check(cashflow_statement=cashflow_2021,cash_workings=cashflow_workings_2021):
+        test_df=pd.DataFrame(columns=['bank'],data=[cashflow_statement['bank'].sum()])
+        test_df['Name']='Cash at Bank'
+        st.write('cash workings',cash_workings)
+        # st.write('check cash workings to drop 2021 2020 and bank', cash_workings.drop(cash_workings.iloc[:,1],axis=1))
+        # FIX BELOW COLUMSN
+        st.write('check cash workings to drop 2021 2020 and bank', cash_workings.drop(cash_workings.columns[[1,3]],axis=1))
+        cash_check=cash_workings.loc[(cash_workings['Name']=='Cash at Bank')].drop(['2021','2020','bank'],axis=1).rename(columns={'diff':'bank'})
+        checking_cash_test = pd.concat([cash_check,test_df],axis=0).set_index('Name')
+        checking_cash_test.loc['total']=checking_cash_test['bank'].sum()
+        return checking_cash_test
+
+    check_cash_2021=cashflow_check(cashflow_statement=cashflow_2021,cash_workings=cashflow_workings_2021)
+    st.write(check_cash_2021.reset_index().style.format("{:,.0f}",subset=['bank']))
     # st.write('pl 2021 total', pl_2021_data.sum())
     # st.write('bs 2020', cash_2020)
 
