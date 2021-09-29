@@ -549,6 +549,7 @@ with st.beta_expander('Cashflow'):
 
     cashflow_workings_2021 = cashflow_working(cash_current=cash_2021,cash_prior=cash_2020).fillna(0)
     cashflow_workings_2020 = cashflow_working(cash_current=cash_2020,cash_prior=cash_2019)
+    cashflow_workings_2019 = cashflow_working(cash_current=cash_2019,cash_prior=cash_2018)
     st.write('cashflow workings',cashflow_workings_2020)
     st.markdown(get_table_download_link(cashflow_workings_2020), unsafe_allow_html=True)
 
@@ -562,6 +563,7 @@ with st.beta_expander('Cashflow'):
     
     cashflow_2021=cashflow_statement(cash_workings_returned=cashflow_workings_2021,pl=pl_2021_data)
     cashflow_2020=cashflow_statement(cash_workings_returned=cashflow_workings_2020,pl=pl_2020_data)
+    cashflow_2019=cashflow_statement(cash_workings_returned=cashflow_workings_2019,pl=pl_2019_data)
     st.write('cashflow 2020',cashflow_2020)
 
     def cashflow_check(cashflow_statement=cashflow_2021,cash_workings=cashflow_workings_2021):
@@ -578,9 +580,11 @@ with st.beta_expander('Cashflow'):
 
     check_cash_2021=cashflow_check(cashflow_statement=cashflow_2021,cash_workings=cashflow_workings_2021)
     check_cash_2020=cashflow_check(cashflow_statement=cashflow_2020,cash_workings=cashflow_workings_2020)
-
+    check_cash_2019=cashflow_check(cashflow_statement=cashflow_2019,cash_workings=cashflow_workings_2019)
+    
     st.write(check_cash_2021.reset_index().style.format("{:,.0f}",subset=['bank']))
     st.write(check_cash_2020.reset_index().style.format("{:,.0f}",subset=['bank']))
+    st.write(check_cash_2019.reset_index().style.format("{:,.0f}",subset=['bank']))
     # st.write('pl 2021 total', pl_2021_data.sum())
     # st.write('bs 2020', cash_2020)
 
