@@ -58,6 +58,7 @@ def load_excel():
     return pd.concat(pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Consol TB.xlsx',header=[0,1],sheet_name=None),ignore_index=True)
 
 df=load_excel().copy()
+# st.write(df)
 df[('acc_sch','acc_sch')]=df[('Account Code','Account Code')].astype(str).str[:3].astype(int)
 # st.write(df.dtypes)
 df[('TB','9 Story Dist.')]=pd.to_numeric(df[('TB','9 Story Dist.')],errors='coerce')
@@ -590,8 +591,8 @@ with st.beta_expander('Cashflow'):
 
 
 with st.beta_expander('Check PL v. Stats'):
-    result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':6121790},{'index':'bbf_uk_group_total',
-    'Net Profit after Tax':-1391583},{'index':'dil_total','Net Profit after Tax':2138487}]
+    result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':5375924},{'index':'bbf_uk_group_total',
+    'Net Profit after Tax':-1375844},{'index':'dil_total','Net Profit after Tax':2687}]
 
     result_2020=[{'index':'bbf_irl_group_total','Net Profit after Tax':1902048},{'index':'bbf_uk_group_total',
     'Net Profit after Tax':682433},{'index':'dil_total','Net Profit after Tax':1804120}]
