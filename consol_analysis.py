@@ -406,6 +406,9 @@ with st.beta_expander('Revenue Analysis'):
     check_test_1=test_concat.loc['Revenue'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
         .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Revenue':'Revenue'})\
             .sort_values(by='location').reset_index().drop('index',axis=1)
+    check_test_2=test_concat.loc['Revenue'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .reset_index().rename(columns={'index':'location','Revenue':'Revenue'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
     # check_test_1['date']=pd.to_datetime(check_test_1['date'])
     # st.write(check_test)
     # st.write(check_test_1)
@@ -429,6 +432,21 @@ with st.beta_expander('Revenue Analysis'):
     st.write('Select and press shift to highlight locations')
 
     st.altair_chart((updated_test_chart).add_selection(selection_3),use_container_width=True)
+
+    selection_4 = alt.selection_multi(fields=['location'], bind='legend')
+    scale_4=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total','dil_total'],range=['blue','red','lime'])
+    test_run_4=alt.Chart(check_test_2,title='Revenue by Year by Location').mark_bar(size=80).encode(
+    # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
+    alt.X('date:O',axis=alt.Axis(title='date')),
+    # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
+    alt.Y('Revenue:Q'),
+    color=alt.Color('location:N',scale=scale_4,sort=alt.SortField("location", "descending")),order="location:O",
+    opacity=alt.condition(selection_4, alt.value(1), alt.value(0.1)))
+    overlay = pd.DataFrame({'Revenue': [40000000]})
+    vline = alt.Chart(overlay).mark_rule(color='black', strokeWidth=2).encode(y='Revenue:Q')
+    updated_test_chart_4 = alt.layer(test_run_4)
+    st.altair_chart((updated_test_chart_4).add_selection(selection_4),use_container_width=True)
+
 
 with st.beta_expander('Gross Profit Analysis'):
 
@@ -458,7 +476,7 @@ with st.beta_expander('Gross Profit Analysis'):
     data_table.loc[11,['net_profit']]=0
     # st.write("after zero out",data_table)
     # st.write("2021 would have been best net profit percentage ever only for 1.39m of losses in UK which reduced IRL percent from 20.5% to 17.4%")
-    st.write("check this after re-importing 2021 file")
+    # st.write("check this after re-importing 2021 file")
     # selection_3 = alt.selection_multi(fields=['location'], bind='legend')
     # scale_3=alt.Scale(domain=['bbf_irl_profit_%','bbf_uk_profit_%','total_profit_%'],range=['blue','red','green'])
     test_run_3=alt.Chart(data_table,title='Gross Profit percent by Year').mark_bar().encode(
@@ -471,6 +489,53 @@ with st.beta_expander('Gross Profit Analysis'):
     ).properties(width=350)
 
     st.altair_chart((test_run_3))
+
+
+
+
+
+    check_test_profit=test_concat.loc['Gross Profit'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .reset_index().rename(columns={'index':'location','Gross Profit':'net_profit'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    check_test_revenue=test_concat.loc['Revenue'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .reset_index().rename(columns={'index':'location','Revenue':'total_revenue'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    # st.write('check_test')
+    revenue_profit = pd.merge(check_test_profit,check_test_revenue,on=['location','date'],how='outer')
+    # st.write(revenue_profit)
+    total_revenue_profit = revenue_profit.groupby('date').agg ( net_profit = ( 'net_profit','sum' ), revenue=( 'total_revenue','sum' )).reset_index()
+    
+    total_revenue_profit['total_profit_%']= (total_revenue_profit['net_profit']/total_revenue_profit['revenue'])
+    # st.write(total_revenue_profit)
+    select=total_revenue_profit.loc[:,['date','total_profit_%']]
+    np_data=test_concat.loc['Gross Profit %'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
+        .reset_index().rename(columns={'index':'location','Gross Profit %':'gross_profit_%'})\
+            .sort_values(by='location').reset_index().drop('index',axis=1)
+    np_data['gross_profit_%']=np_data['gross_profit_%']/100
+    net_profit_table_percent=np_data.pivot(index='date',values='gross_profit_%',columns='location').reset_index()
+    profit_table = pd.merge(net_profit_table_percent,select, on='date',how='outer').rename(columns={'bbf_irl_group_total':'bbf_irl_profit_%',
+    'bbf_uk_group_total':'bbf_uk_profit_%','dil_total':'dil_profit_%'})
+    # st.write(profit_table)
+    data_table=pd.melt(profit_table,id_vars='date',value_vars=['bbf_irl_profit_%','bbf_uk_profit_%','dil_profit_%',
+    'total_profit_%'],value_name='net_profit',var_name='location')
+    # st.write("before zero out",data_table)
+    data_table.loc[11,['net_profit']]=0
+    # st.write("after zero out",data_table)
+    # st.write("2021 would have been best net profit percentage ever only for 1.39m of losses in UK which reduced IRL percent from 20.5% to 17.4%")
+    # st.write("check this after re-importing 2021 file")
+    # selection_3 = alt.selection_multi(fields=['location'], bind='legend')
+    # scale_3=alt.Scale(domain=['bbf_irl_profit_%','bbf_uk_profit_%','total_profit_%'],range=['blue','red','green'])
+    test_run_3=alt.Chart(data_table,title='Gross Profit percent by Year').mark_bar().encode(
+    # https://stackoverflow.com/questions/64032908/altair-chart-reads-more-information-from-timestamps-than-it-should
+    alt.X('date:O',axis=alt.Axis(title='year')),
+    # alt.X('date:T',timeUnit="year", axis=alt.Axis(labelAlign='right',title='date',labelAngle=360,tickMinStep=1000*60*60*24*360)),
+    alt.Y('net_profit:Q',axis=alt.Axis(title='gross_profit percentage')),
+    color=alt.Color('date:N'),
+    column='location:N',
+    ).properties(width=350)
+
+    st.altair_chart((test_run_3))
+
 
 with st.beta_expander('Headcount'):
     with st.echo():
