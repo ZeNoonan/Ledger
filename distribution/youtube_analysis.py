@@ -6,11 +6,18 @@ import base64
 
 st.set_page_config(layout="wide")
 
-@st.cache
+# @st.cache
 def youtube(filename,id_file):
     # data=pd.read_excel(filename)
     data=pd.read_csv(filename)
     data['Custom ID']=data['Custom ID'].str.lower()
+    data=data.rename(columns={'Video Title':'Asset Title'})
+
+    # st.write( data[data.isna().any(axis=1)] )    
+    data['Custom ID']=data['Custom ID'].fillna(data['Asset Title'])
+    data['Asset Title']=data['Asset Title'].fillna(data['Custom ID'])
+    # st.write( data[data.isna().any(axis=1)] )
+
     master=pd.read_excel(id_file)
     master['Custom ID']=master['Custom ID'].str.lower()
     # st.write('data sum before merge:',data['Partner Revenue'].sum())
@@ -31,9 +38,14 @@ def youtube_master_filename(filename):
     # data=pd.read_excel(filename)
     return pd.read_excel(filename)
 
-@st.cache
+# @st.cache
 def merge_files(data,master):
+    data['Custom ID']=data['Custom ID'].str.lower()
+    
+    data['Custom ID']=data['Custom ID'].fillna(data['Asset Title'])
+    data['Asset Title']=data['Asset Title'].fillna(data['Custom ID'])
     master['Custom ID']=master['Custom ID'].str.lower()
+    data['Custom ID']=data['Custom ID'].str.lower()
     # st.write('data sum before merge:',data['Partner Revenue'].sum())
     new=data.merge(master,how='left', on='Custom ID')
     # st.write('Partner Revenue after merge:', new['Partner Revenue'].sum())
@@ -42,23 +54,49 @@ def merge_files(data,master):
     new['Territory'] = np.where(new['New Show Name']=='Peep','CA',new['Territory'])
     return new
 
+def run_custom_id(data):
+    data=data.rename(columns={'Video Title':'Asset Title'})
+    data['Custom ID']=data['Custom ID'].fillna(data['Asset Title'])
+    data['Custom ID']=data['Custom ID'].str.lower()
+    return data
+
+def run_lower_case(master):
+    master['Custom ID']=master['Custom ID'].str.lower()
+    return master
+
+def merge_file(data,master):
+    return pd.merge(data,master, on='Custom ID',how='left')
+
+def clean_merged(new):
+    new['Show_Season'] = new['New Show Name'].map(str) + " - " + new['New Season']
+    new['Territory'] = np.where(new['Country']=='CA', 'CA', np.where(new['New Show ']=='SUPW', '9SUSA', 'INTL'))
+    new['Territory'] = np.where(new['New Show Name']=='Peep','CA',new['Territory'])
+    return new
+
+# video=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_rawdata_asset_v1-1.csv',
+# id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
+df_1=youtube_load(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_rawdata_asset_v1-1.csv').copy()
+df_2=youtube_master_filename(filename='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx').copy()
+master=run_lower_case(df_2)
+df_1=run_custom_id(df_1)
+df_1=merge_file(df_1,master)
+video=clean_merged(df_1)
 
 
-video=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_rawdata_asset_v1-1.csv',
-id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
-# df_1=youtube_load(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_rawdata_asset_v1-1.csv').copy()
-# df_2=youtube_master_filename(filename='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx').copy()
-# video=merge_files(df_1,df_2).copy()
+# non_music_asset=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_rev_views_by_asset_v1-0.csv',
+# id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
+df_3=youtube_load(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_rev_views_by_asset_v1-0.csv').copy()
+df_3=run_custom_id(df_3)
+df_3=merge_file(df_3,master)
+non_music_asset=clean_merged(df_3)
 
-
-non_music_asset=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_rev_views_by_asset_v1-0.csv',
-id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
-# st.write(non_music_asset['Partner Revenue'].sum())
-# test_data=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_rev_views_by_asset_v1-0.csv')
-# st.write('raw data correct figure:',test_data['Partner Revenue'].sum())
-
-asset=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_music_rawdata_video_v1-1.csv',
-id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
+# asset=youtube(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_music_rawdata_video_v1-1.csv',
+# id_file='C:/Users/Darragh/Documents/Python/Work/distribution/Youtube Analysis - Master List.xlsx')
+df_4=youtube_load(filename='C:/Users/Darragh/Documents/Python/Work/distribution/YouTube_9StoryIreland_M_20220101_20220131_red_music_rawdata_video_v1-1.csv').copy()
+#     .rename(columns={'Video Title':'Asset Title'})
+df_4=run_custom_id(df_4)
+df_4=merge_file(df_4,master)
+asset=clean_merged(df_4)
 
 @st.cache
 def convert_df(df):
@@ -66,9 +104,13 @@ def convert_df(df):
      return df.to_csv().encode('utf-8')
 
 # merge the docs together
+# sourcery skip: use-fstring-for-concatenation
 combo_youtube=pd.merge(video,non_music_asset,how='outer')
 combo_youtube=pd.merge(combo_youtube,asset,how='outer')
 combo_youtube['Partner Revenue']=pd.to_numeric(combo_youtube['Partner Revenue'])
+# combo_youtube['Custom ID']=combo_youtube['Custom ID'].fillna(combo_youtube['Asset Title'])
+# combo_youtube['Asset Title']=combo_youtube['Asset Title'].fillna(combo_youtube['Custom ID'])
+
 # st.write(combo_youtube.head())
 # combo_youtube.loc['total']=combo_youtube.sum()
 # show the NANs for the titles that don't have an ID matching up
@@ -78,6 +120,7 @@ summary_missing_codes=missing_codes.groupby(['Custom ID','Asset Title'])['Partne
 # summary_missing_codes['Asset Title']=summary_missing_codes['Asset Title'].lower()
 with st.expander('This shows breakdown of lines that have missing codes/titles'):
     st.write('below is the grouped by title/ID version to compare')
+    st.write('This listing of missing codes will grow smaller as you add the coding from the missing titles in below sections')
     st.write(summary_missing_codes.reset_index().sort_values(by=['Partner Revenue'], ascending=False))
 
     # missing_codes.loc['total']=missing_codes.sum()
@@ -227,6 +270,41 @@ with st.expander('Missing title with Wandering Wenda'):
     csv = convert_df(df)
     st.download_button(label="Download data as CSV",data=csv,file_name='df.csv',mime='text/csv',key='wenda')
 
+with st.expander('Missing title with Brad Meltzer'):
+    df=summary_missing_codes[summary_missing_codes['Asset Title'].str.contains("Meltzer")]\
+        .sort_values(by=['Partner Revenue'], ascending=False)
+    df['New Show Name']="Brad Meltzer"
+    df['New Show'] = 'BME'
+    cols_to_move=['Custom ID','New Show','New Show Name']
+    cols = cols_to_move + [col for col in df if col not in cols_to_move]
+    df=df[cols]
+    st.write(df)
+    csv = convert_df(df)
+    st.download_button(label="Download data as CSV",data=csv,file_name='df.csv',mime='text/csv',key='meltzer')
+
+with st.expander('Missing title with Xavier Riddle'):
+    df=summary_missing_codes[summary_missing_codes['Asset Title'].str.contains("Xavier")]\
+        .sort_values(by=['Partner Revenue'], ascending=False)
+    df['New Show Name']="Xavier Riddle"
+    df['New Show'] = 'XAV'
+    cols_to_move=['Custom ID','New Show','New Show Name']
+    cols = cols_to_move + [col for col in df if col not in cols_to_move]
+    df=df[cols]
+    st.write(df)
+    csv = convert_df(df)
+    st.download_button(label="Download data as CSV",data=csv,file_name='df.csv',mime='text/csv',key='xavier')
+
+with st.expander('Missing title with Moon and Me'):
+    df=summary_missing_codes[summary_missing_codes['Custom ID'].str.contains("moon")]\
+        .sort_values(by=['Partner Revenue'], ascending=False)
+    df['New Show Name']="Moon & Me"
+    df['New Show'] = 'MOME'
+    cols_to_move=['Custom ID','New Show','New Show Name']
+    cols = cols_to_move + [col for col in df if col not in cols_to_move]
+    df=df[cols]
+    st.write(df)
+    csv = convert_df(df)
+    st.download_button(label="Download data as CSV",data=csv,file_name='df.csv',mime='text/csv',key='moon')
 
 
 youtube_summary=combo_youtube.groupby(['New Show Name','New Season','Territory'])['Partner Revenue'].sum().unstack().fillna(0).sort_values(by='CA', ascending=False)\
