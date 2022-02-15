@@ -9,57 +9,21 @@ from io import BytesIO
 
 st.set_page_config(layout="wide")
 
-    # sheet_1=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/may_2021.csv',header=[0,1])
-    # sheet_2=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/feb_2021.csv',header=[0,1])
-    # sheet_3=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/nov_2020.csv',header=[0,1])
-    # sheet_4=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/aug_2020.csv',header=[0,1])
-    # sheet_5=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/may_2020.csv',header=[0,1])
-    # sheet_6=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/feb_2020.csv',header=[0,1])
-    # sheet_7=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/nov_2019.csv',header=[0,1])
-    # sheet_8=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/aug_2019.csv',header=[0,1])
-    # sheet_9=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/may_2019.csv',header=[0,1])
-    # sheet_10=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/feb_2019.csv',header=[0,1])
-    # sheet_11=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/nov_2018.csv',header=[0,1])
-    # sheet_12=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/aug_2018.csv',header=[0,1])
-    # sheet_13=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/may_2018.csv',header=[0,1])
-    # sheet_14=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/feb_2018.csv',header=[0,1])
-    # sheet_15=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/nov_2017.csv',header=[0,1])
-    # sheet_16=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/aug_2017.csv',header=[0,1])
-    # sheet_17=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/may_2017.csv',header=[0,1])
-    # sheet_18=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/feb_2017.csv',header=[0,1])
-    # sheet_19=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/nov_2016.csv',header=[0,1])
-    # sheet_20=pd.read_csv('C:/Users/Darragh/Documents/Python/Work/Data/aug_2016.csv',header=[0,1])
-    # df=pd.concat([sheet_1,sheet_2,sheet_3,sheet_4,sheet_5,sheet_6,sheet_7,sheet_8,sheet_9,sheet_10,
-    # sheet_11,sheet_12,sheet_13,sheet_14,sheet_15,sheet_16,sheet_17,sheet_18,sheet_19,sheet_20],axis=0)
-    # st.write('check',df)
-    # df.to_csv('C:/Users/Darragh/Documents/Python/Work/Data/quarterly_all.csv')
-
-def get_table_download_link(df):
-    """Generates a link allowing the data in a given panda dataframe to be downloaded
-    in:  dataframe
-    out: href string
-    """
-    val = to_excel(df)
-    b64 = base64.b64encode(val)  # val looks like b'...'
-    return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="extract.xlsx">Download csv file</a>' # decode b'abc' => abc
-
-def to_excel(df):
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, sheet_name='Sheet1')
-    writer.save()
-    processed_data = output.getvalue()
-    return processed_data
-
 # https://stackoverflow.com/questions/18470323/selecting-columns-from-pandas-multiindex
 
 @st.cache
 def load_excel():
     return pd.concat(pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Consol TB.xlsx',header=[0,1],sheet_name=None),ignore_index=True)
 
+@st.cache
+def load_excel_cache(x):
+    return pd.read_excel(x)
+
 df=load_excel().copy()
+# st.write('update')
 # st.write(df)
 df[('acc_sch','acc_sch')]=df[('Account Code','Account Code')].astype(str).str[:3].astype(int)
+df[('Code','Code')]=df[('Code','Code')].astype(str)
 # st.write(df.dtypes)
 df[('TB','9 Story Dist.')]=pd.to_numeric(df[('TB','9 Story Dist.')],errors='coerce')
 # df[('acc_sch','acc_sch')]=pd.to_numeric(df[('acc_sch','acc_sch')],errors='coerce')
@@ -71,7 +35,7 @@ cols_to_move = [('fiscal_year', 'fiscal_year'),('calendar_year', 'calendar_year'
  ('Classification 9SMG', 'Classification 9SMG'), ('Classification Stats', 'Classification Stats'), ('Sub-Classification Stats', 'Sub-Classification Stats')]
 cols = cols_to_move + [col for col in df if col not in cols_to_move]
 df=df[cols]
-
+# st.write('df',df)
 # changing signs of accounting entries below
 df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]=df.loc[:,df.columns.get_level_values(0).isin({"TB", "consol_jnl"})]*-1
 
@@ -86,32 +50,107 @@ df[('total','bbf_group_total')]=filter_out_dil.sum(axis=1)
 df[('total','bbf_irl_group_total')]=filter_out_uk.sum(axis=1)
 df[('total','bbf_uk_group_total')]=filter_in_uk.sum(axis=1)
 
-with st.beta_expander('Checking Totals'):
+with st.expander('Checking Totals'):
+    st.write('update line 122 as to whether it is Q1 / Q2 / Q3 / Q4 that is being analysed')
     st.write('check total equals zero',df['total'].sum(),'close enough its 11')
     quarter_4=df.loc[df[('quarter','quarter')]==4]
+    quarter_1=df.loc[df[('quarter','quarter')]==1]
     st.write('check q4 totals',quarter_4['total'].sum(),"that works equal to 3")
 
 # st.write('check q4',quarter_4)
 
 coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers_updated.xlsx')).iloc[:,:3]
-# coding_acc_schedule['Acc_Number']=coding_acc_schedule['Acc_Number'].str.replace("-",'').astype(float)
+coding_acc_schedule['Acc_Number']=coding_acc_schedule['Acc_Number'].str.replace("-",'').astype(float)
 
 coding_acc_schedule=coding_acc_schedule.rename(columns={'Acc_Number':'Account Code'})
 coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers_updated.xlsx', sheet_name='Sheet2')
 # st.write('coding acc sch', coding_acc_schedule)
 # st.write('coding sort', coding_sort)
 
+# st.write('check all',coding_acc_schedule.head(2))
+# st.write('check',coding_acc_schedule['Sorting'].dtypes)
+# st.write('check',coding_acc_schedule['Name'].dtypes)
+# st.write('check',coding_acc_schedule['Account Code'].dtypes)
+# st.write('check',quarter_4.head())
 
 def filter_total(df,coding_acc_schedule):
     df=df.droplevel(0,axis=1)
+    # st.write('check df',df['Account Code'].dtypes)
     df=df.loc[:,['fiscal_year','calendar_year','quarter','date','Account Code','acc_sch','total','9sdil_total','bbf_group_total','bbf_irl_group_total',
     'bbf_uk_group_total',
     'Description','Code','Classification 9SMG','Classification Stats','Sub-Classification Stats']]
     df = df.merge (coding_acc_schedule, on='Account Code',how='outer')
-
     return df
 
+def filter_total_detail(df,coding_acc_schedule):
+    df=df.droplevel(0,axis=1)
+    # st.write('check df',df['Account Code'].dtypes)
+    df = df.merge (coding_acc_schedule, on='Account Code',how='outer')
+    return df
+
+with st.expander('revenue workings'):
+
+    st.write('getting a breakdown of revenue by project')
+    revenue_data=filter_total_detail(quarter_1,coding_acc_schedule)
+    revenue_data=revenue_data.query('`acc_sch`==920')
+    revenue_data=revenue_data.query('`fiscal_year`==2022')
+
+    # test_data_set_melt=revenue_data[~revenue_data['date']]
+    test_1=revenue_data.loc[:, ~revenue_data.columns.isin(['fiscal_year','calendar_year','quarter','acc_sch','total',
+    '9sdil_total','bbf_group_total','bbf_irl_group_total','Description',
+    'bbf_uk_group_total','Name', 'Sorting','Unnamed: 9_level_1',
+    'Description','Code','Classification 9SMG','Classification Stats','Sub-Classification Stats'])]
+    # st.write('test columns', test_1.columns)
+    
+    revenue_melt=pd.melt(test_1, id_vars=['date','Account Code'], value_name='amount',var_name='consol_coding_1')
+    # revenue_melt=pd.melt(test_1, id_vars=['date'], value_name='amount',var_name='consol_coding_1')
+
+    # revenue_melt['spv']=revenue_melt['spv'].astype(str)
+    project_names=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2022_.xlsx')
+    select_project_names_1=project_names.loc[:,['Project','consol_coding_1']]
+    select_project_names_2=project_names.loc[:,['Project','consol_coding_2']].rename(columns={'consol_coding_2':'consol_coding_1'})
+    # st.write('revenue melt', revenue_melt.sort_values(by='amount',ascending=True))
+    # st.write('project names', select_project_names_1.head())
+    
+    merged_revenue_test=pd.merge(revenue_melt, select_project_names_1, on=['consol_coding_1'],how='outer')
+    # st.write('merged_revenue_test', merged_revenue_test)
+    merged_revenue_test_na=merged_revenue_test[merged_revenue_test['Project'].isnull()].drop('Project',axis=1)
+    # st.write('merged revenue with Project = n/a', merged_revenue_test_na.head())
+    merged_revenue_test_values=merged_revenue_test[~merged_revenue_test['Project'].isnull()]
+    # st.write('merged revenue with Project = coded', merged_revenue_test_values.head())
+
+    merged_revenue_test_na=pd.merge(merged_revenue_test_na, select_project_names_2, on=['consol_coding_1'],how='outer')
+    # st.write('merged na with Project filled', merged_revenue_test_na)
+    full_code=pd.concat([merged_revenue_test_values,merged_revenue_test_na])
+    # st.write('fully coded check', full_code)
+    st.write('check that total revenue has small diff', full_code['amount'].sum() - revenue_melt['amount'].sum())
+    # st.write('n/a check', full_code[full_code['Project'].isnull()])
+    bbf_irl_revenue=full_code[full_code['consol_coding_1']=='BBF Irl']
+    revenue_excluding_bbf_irl = full_code[full_code['consol_coding_1']!='BBF Irl']
+    # st.write('bbf irl revenue', bbf_irl_revenue)
+
+    bbf_irl_ledger=load_excel_cache('C:/Users/Darragh/Documents/Python/Work/Data/NL_2022_03.xlsx')
+    bbf_irl_ledger_revenue=bbf_irl_ledger[bbf_irl_ledger['Account Code'].astype(str).str.startswith('920')]
+    st.write('check that BBF IRL Revenue difference is small',bbf_irl_ledger_revenue['Journal Amount'].sum()+bbf_irl_revenue['amount'].sum())
+    bbf_irl_rev=bbf_irl_ledger_revenue.loc[:,['Journal Amount','Project']].rename(columns={'Journal Amount':'amount'})
+    bbf_irl_rev['amount']=-bbf_irl_rev['amount']
+    bbf_irl_rev['date']=pd.to_datetime(datetime.date(2021, 11, 30))
+    # st.write(bbf_irl_rev['date'].dtype)
+    # st.write(revenue_excluding_bbf_irl['date'].dtype)
+    combined_revenue=pd.concat([revenue_excluding_bbf_irl,bbf_irl_rev],ignore_index=True)
+    st.write('combined revenue sum', )
+    combined_revenue['Project']=combined_revenue['Project'].fillna('Admin')
+    # st.write('fix na',combined_revenue)
+    revenue_grouped=combined_revenue.groupby('Project')['amount'].sum().reset_index()
+    revenue_grouped=revenue_grouped[revenue_grouped['amount']!=0].sort_values(by='amount',ascending=False)
+    st.write(revenue_grouped)
+    st.write('check revenue diff is small',(revenue_grouped['amount'].sum() - combined_revenue['amount'].sum()).round(1))
+
 annual=filter_total(quarter_4,coding_acc_schedule)
+quarter_1=filter_total(quarter_1,coding_acc_schedule)
+# st.write('quarter 1', quarter_1.head())
+# st.write('quarter 4', annual.head())
+annual=quarter_1
 
 # st.markdown(get_table_download_link(annual), unsafe_allow_html=True)
 # st.write('checking',annual[annual['Classification 9SMG'].isna()])
@@ -141,10 +180,12 @@ def pl_generation_multiple(clean_data,category_to_filter_on):
 
 check_data=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Name'],total='total')
 totals_data=pl_generation_multiple(pl_data,category_to_filter_on=['fiscal_year','Name'])
-# st.write(check_data)
+# st.write('check data',check_data)
 check_data_acc_code=pl_generation(pl_data,category_to_filter_on=['fiscal_year','Account Code'],total='total')
 
 # need to filter by year
+pl_2022=check_data.query('`fiscal_year`==2022').set_index('Name').drop('fiscal_year',axis=1)
+# st.write('this is pl 2022',pl_2022)
 pl_2021=check_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
 pl_2020=check_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
 pl_2019=check_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
@@ -152,6 +193,7 @@ pl_2018=check_data.query('`fiscal_year`==2018').set_index('Name').drop('fiscal_y
 pl_2017=check_data.query('`fiscal_year`==2017').set_index('Name').drop('fiscal_year',axis=1)
 pl_2016=check_data.query('`fiscal_year`==2016').set_index('Name').drop('fiscal_year',axis=1)
 
+pl_2022_data=pl_2022.copy()
 pl_2021_data=pl_2021.copy()
 pl_2020_data=pl_2020.copy()
 pl_2019_data=pl_2019.copy()
@@ -159,6 +201,8 @@ pl_2018_data=pl_2018.copy()
 pl_2017_data=pl_2017.copy()
 pl_2016_data=pl_2016.copy()
 
+pl_2022_totals=totals_data.query('`fiscal_year`==2022').set_index('Name').drop('fiscal_year',axis=1)
+# st.wri
 pl_2021_totals=totals_data.query('`fiscal_year`==2021').set_index('Name').drop('fiscal_year',axis=1)
 pl_2020_totals=totals_data.query('`fiscal_year`==2020').set_index('Name').drop('fiscal_year',axis=1)
 pl_2019_totals=totals_data.query('`fiscal_year`==2019').set_index('Name').drop('fiscal_year',axis=1)
@@ -228,21 +272,26 @@ def color_negative_red(val):
     color = 'red' if val < 0 else 'black'
     return 'color: %s' % color
 
-with st.beta_expander('Full group by year'):
+with st.expander('Full group by year'):
+    pl_2022=clean(pl_2022,year_column='2022',coding_sort=coding_sort)
     pl_2021=clean(pl_2021,year_column='2021',coding_sort=coding_sort)
     pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
     pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
     pl_2018=clean(pl_2018,year_column='2018',coding_sort=coding_sort)
     pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
-    pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort)
-    all_pl=pd.concat([pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
+    # pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort) # No Q1 / Q2 /Q3 in 2016
+    # all_pl=pd.concat([pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
+    all_pl=pd.concat([pl_2022,pl_2021,pl_2020,pl_2019,pl_2018,pl_2017],axis=1).drop('Sorting',axis=1)
+    # all_pl=pd.concat([pl_2022,pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
 
     st.write('all', format_pl(all_pl))
     st.write('pl after tax per stats',{'2021':'6,868,694','2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
 
 
-with st.beta_expander('PL for each group for each year'):
+with st.expander('PL for each group for each year'):
     # https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
+    pl_2022_totals=clean(pl_2022_totals,year_column='2022',coding_sort=coding_sort).drop(['2022','bbf_total'],axis=1).assign(newlevel='2022')\
+        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2022'))
     pl_2021_totals=clean(pl_2021_totals,year_column='2021',coding_sort=coding_sort).drop(['2021','bbf_total'],axis=1).assign(newlevel='2021')\
         .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2021'))
     pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
@@ -253,8 +302,8 @@ with st.beta_expander('PL for each group for each year'):
         .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2018'))
     pl_2017_totals=clean(pl_2017_totals,year_column='2017',coding_sort=coding_sort).drop(['2017','bbf_total'],axis=1).assign(newlevel='2017')\
         .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2017'))
-    pl_2016_totals=clean(pl_2016_totals,year_column='2016',coding_sort=coding_sort).drop(['2016','bbf_total'],axis=1).assign(newlevel='2016')\
-        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2016'))
+    # pl_2016_totals=clean(pl_2016_totals,year_column='2016',coding_sort=coding_sort).drop(['2016','bbf_total'],axis=1).assign(newlevel='2016')\
+    #     .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2016'))
 
     def test_total():
         subtotal=pl_2020_totals[['dil_total','bbf_uk_group_total','bbf_irl_group_total']]
@@ -262,22 +311,29 @@ with st.beta_expander('PL for each group for each year'):
         pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
         return pl_2020_totals
 
+    st.write(format_pl( pl_2022_totals ))
     st.write(format_pl( pl_2021_totals ))
     st.write(format_pl( pl_2020_totals ))
     st.write(format_pl( pl_2019_totals ))
     st.write(format_pl( pl_2018_totals ))
     st.write(format_pl( pl_2017_totals ))
-    st.write(format_pl( pl_2016_totals ))
+    # st.write(format_pl( pl_2016_totals ))
 
-    test_concat=pd.concat([pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    ## to update depending on which quarter used, 2016 only has q4
+    # test_concat=pd.concat([pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    # test_concat=pd.concat([pl_2022_totals,pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    test_concat=pd.concat([pl_2022_totals,pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals],axis=1)
+
     # st.write('test',test_concat)
     check_test=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index()
+    # st.write('check_test #1')
+    # st.write(check_test.columns)
     check_test_1=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
         .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Net Profit before Tax and Amortisation':'net_profit'})\
             .sort_values(by='location').reset_index().drop('index',axis=1)
     # check_test_1['date']=pd.to_datetime(check_test_1['date'])
-    st.write('check_test')
-    st.write(check_test_1)
+    # st.write('check_test #1')
+    # st.write(check_test_1)
 
     selection_3 = alt.selection_multi(fields=['location'], bind='legend')
     scale_3=alt.Scale(domain=['bbf_irl_group_total','bbf_uk_group_total'],range=['blue','red'])
@@ -335,8 +391,8 @@ with st.beta_expander('PL for each group for each year'):
     # st.altair_chart((updated_test_chart_2).add_selection(selection_3),use_container_width=True)
     st.write(net_profit_table_percent.style.format({'bbf_irl_group_total':"{:,.0%}",'bbf_uk_group_total':"{:,.0%}"}))
 
-with st.beta_expander('Net Profit %'):
-
+with st.expander('Net Profit %'):
+    # st.write('test concat', test_concat)
     check_test_profit=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
         .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Net Profit before Tax and Amortisation':'net_profit'})\
             .sort_values(by='location').reset_index().drop('index',axis=1)
@@ -345,7 +401,7 @@ with st.beta_expander('Net Profit %'):
             .sort_values(by='location').reset_index().drop('index',axis=1)
     # st.write('check_test')
     revenue_profit = pd.merge(check_test_profit,check_test_revenue,on=['location','date'],how='outer')
-    # st.write(revenue_profit)
+    # st.write('revenue profit',revenue_profit)
     total_revenue_profit = revenue_profit.groupby('date').agg ( net_profit = ( 'net_profit','sum' ), revenue=( 'total_revenue','sum' )).reset_index()
     
     total_revenue_profit['total_profit_%']= (total_revenue_profit['net_profit']/total_revenue_profit['revenue'])
@@ -354,8 +410,10 @@ with st.beta_expander('Net Profit %'):
     profit_table = pd.merge(net_profit_table_percent,select, on='date',how='outer').rename(columns={'bbf_irl_group_total':'bbf_irl_profit_%','bbf_uk_group_total':'bbf_uk_profit_%'})
     # st.write(profit_table)
     data_table=pd.melt(profit_table,id_vars='date',value_vars=['bbf_irl_profit_%','bbf_uk_profit_%','total_profit_%'],value_name='net_profit',var_name='location')
+    st.write(data_table)
     data_table.loc[11,['net_profit']]=0
-    # st.write(data_table)
+    data_table.loc[10,['net_profit']]=0 # only for Q1
+    st.write(data_table)
     st.write("2021 would have been best net profit percentage ever only for 1.39m of losses in UK which reduced IRL percent from 20.5% to 17.4%")
     st.write("check this after re-importing 2021 file")
     # selection_3 = alt.selection_multi(fields=['location'], bind='legend')
@@ -401,7 +459,7 @@ with st.beta_expander('Net Profit %'):
 
 
 
-with st.beta_expander('Revenue Analysis'):
+with st.expander('Revenue Analysis'):
     check_test=test_concat.loc['Revenue'].reset_index()
     check_test_1=test_concat.loc['Revenue'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
         .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Revenue':'Revenue'})\
@@ -448,7 +506,7 @@ with st.beta_expander('Revenue Analysis'):
     st.altair_chart((updated_test_chart_4).add_selection(selection_4),use_container_width=True)
 
 
-with st.beta_expander('Gross Profit Analysis'):
+with st.expander('Gross Profit Analysis'):
 
     check_test_profit=test_concat.loc['Gross Profit'].reset_index().rename(columns={'level_0':'index','newlevel':'date'}).set_index('index')\
         .drop(index=['Sorting','dil_total']).reset_index().rename(columns={'index':'location','Gross Profit':'net_profit'})\
@@ -470,10 +528,11 @@ with st.beta_expander('Gross Profit Analysis'):
     np_data['gross_profit_%']=np_data['gross_profit_%']/100
     net_profit_table_percent=np_data.pivot(index='date',values='gross_profit_%',columns='location').reset_index()
     profit_table = pd.merge(net_profit_table_percent,select, on='date',how='outer').rename(columns={'bbf_irl_group_total':'bbf_irl_profit_%','bbf_uk_group_total':'bbf_uk_profit_%'})
-    # st.write(profit_table)
+    st.write(profit_table)
     data_table=pd.melt(profit_table,id_vars='date',value_vars=['bbf_irl_profit_%','bbf_uk_profit_%','total_profit_%'],value_name='net_profit',var_name='location')
     # st.write("before zero out",data_table)
     data_table.loc[11,['net_profit']]=0
+    data_table.loc[10,['net_profit']]=0 # Needed for Q1
     # st.write("after zero out",data_table)
     # st.write("2021 would have been best net profit percentage ever only for 1.39m of losses in UK which reduced IRL percent from 20.5% to 17.4%")
     # st.write("check this after re-importing 2021 file")
@@ -520,6 +579,7 @@ with st.beta_expander('Gross Profit Analysis'):
     'total_profit_%'],value_name='net_profit',var_name='location')
     # st.write("before zero out",data_table)
     data_table.loc[11,['net_profit']]=0
+    data_table.loc[10,['net_profit']]=0 # Needed for Q1
     # st.write("after zero out",data_table)
     # st.write("2021 would have been best net profit percentage ever only for 1.39m of losses in UK which reduced IRL percent from 20.5% to 17.4%")
     # st.write("check this after re-importing 2021 file")
@@ -537,7 +597,7 @@ with st.beta_expander('Gross Profit Analysis'):
     st.altair_chart((test_run_3))
 
 
-with st.beta_expander('Headcount'):
+with st.expander('Headcount'):
     with st.echo():
         # comes from headcount python file
         headcount_data = pd.read_pickle('C:/Users/Darragh/Documents/Python/Work/Data/headcount_summary.pkl').reset_index()
@@ -574,7 +634,7 @@ with st.beta_expander('Headcount'):
 
     st.altair_chart((updated_test_chart).add_selection(selection_3),use_container_width=True)
 
-with st.beta_expander('Cashflow'):
+with st.expander('Cashflow'):
     st.write('cashflow')
     acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers_updated.xlsx', sheet_name='Sheet3')).iloc[:,:3]
     acc_schedule=acc_schedule.rename(columns={'Acc_Number':'Account Code'})
@@ -655,7 +715,7 @@ with st.beta_expander('Cashflow'):
     # st.write('bs 2020', cash_2020)
 
 
-with st.beta_expander('Check PL v. Stats'):
+with st.expander('Check PL v. Stats'):
     result_2021=[{'index':'bbf_irl_group_total','Net Profit after Tax':5375924},{'index':'bbf_uk_group_total',
     'Net Profit after Tax':-1375844},{'index':'dil_total','Net Profit after Tax':2687}]
 
