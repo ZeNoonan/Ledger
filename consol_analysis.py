@@ -88,12 +88,13 @@ def filter_total_detail(df,coding_acc_schedule):
     df = df.merge (coding_acc_schedule, on='Account Code',how='outer')
     return df
 
+# year=2021
 with st.expander('revenue workings'):
 
     st.write('getting a breakdown of revenue by project')
     revenue_data=filter_total_detail(quarter_1,coding_acc_schedule)
     revenue_data=revenue_data.query('`acc_sch`==920')
-    revenue_data=revenue_data.query('`fiscal_year`==2022')
+    revenue_data=revenue_data.query('`fiscal_year`==2021')
 
     # test_data_set_melt=revenue_data[~revenue_data['date']]
     test_1=revenue_data.loc[:, ~revenue_data.columns.isin(['fiscal_year','calendar_year','quarter','acc_sch','total',
@@ -148,9 +149,7 @@ with st.expander('revenue workings'):
 
 annual=filter_total(quarter_4,coding_acc_schedule)
 quarter_1=filter_total(quarter_1,coding_acc_schedule)
-# st.write('quarter 1', quarter_1.head())
-# st.write('quarter 4', annual.head())
-annual=quarter_1
+# annual=quarter_1 # if you want non year end and want it by quarter use this
 
 # st.markdown(get_table_download_link(annual), unsafe_allow_html=True)
 # st.write('checking',annual[annual['Classification 9SMG'].isna()])
@@ -273,25 +272,25 @@ def color_negative_red(val):
     return 'color: %s' % color
 
 with st.expander('Full group by year'):
-    pl_2022=clean(pl_2022,year_column='2022',coding_sort=coding_sort)
+    # pl_2022=clean(pl_2022,year_column='2022',coding_sort=coding_sort)
     pl_2021=clean(pl_2021,year_column='2021',coding_sort=coding_sort)
     pl_2020=clean(pl_2020,year_column='2020',coding_sort=coding_sort)
     pl_2019=clean(pl_2019,year_column='2019',coding_sort=coding_sort)
     pl_2018=clean(pl_2018,year_column='2018',coding_sort=coding_sort)
     pl_2017=clean(pl_2017,year_column='2017',coding_sort=coding_sort)
     # pl_2016=clean(pl_2016,year_column='2016',coding_sort=coding_sort) # No Q1 / Q2 /Q3 in 2016
-    # all_pl=pd.concat([pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
-    all_pl=pd.concat([pl_2022,pl_2021,pl_2020,pl_2019,pl_2018,pl_2017],axis=1).drop('Sorting',axis=1)
+    all_pl=pd.concat([pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
+    # all_pl=pd.concat([pl_2022,pl_2021,pl_2020,pl_2019,pl_2018,pl_2017],axis=1).drop('Sorting',axis=1)
     # all_pl=pd.concat([pl_2022,pl_2021,pl_2020,pl_2019,pl_2018,pl_2017,pl_2016],axis=1).drop('Sorting',axis=1)
 
     st.write('all', format_pl(all_pl))
-    st.write('pl after tax per stats',{'2021':'6,868,694','2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
+    st.write('pl after tax per stats',{'2021':'4,828,699','2020':'4,388,598','2019':'4,602,008','2018':'5,800,713','2017':'5,193,050','2016':'4,398,294'})
 
 
 with st.expander('PL for each group for each year'):
     # https://stackoverflow.com/questions/40225683/how-to-simply-add-a-column-level-to-a-pandas-dataframe
-    pl_2022_totals=clean(pl_2022_totals,year_column='2022',coding_sort=coding_sort).drop(['2022','bbf_total'],axis=1).assign(newlevel='2022')\
-        .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2022'))
+    # pl_2022_totals=clean(pl_2022_totals,year_column='2022',coding_sort=coding_sort).drop(['2022','bbf_total'],axis=1).assign(newlevel='2022')\
+    #     .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2022'))
     pl_2021_totals=clean(pl_2021_totals,year_column='2021',coding_sort=coding_sort).drop(['2021','bbf_total'],axis=1).assign(newlevel='2021')\
         .set_index('newlevel', append=True).unstack('newlevel').sort_values(by=('Sorting','2021'))
     pl_2020_totals=clean(pl_2020_totals,year_column='2020',coding_sort=coding_sort).drop(['2020','bbf_total'],axis=1).assign(newlevel='2020')\
@@ -311,7 +310,7 @@ with st.expander('PL for each group for each year'):
         pl_2020_totals['check']=pl_2020_totals['check_total']-pl_2020_totals['2020']
         return pl_2020_totals
 
-    st.write(format_pl( pl_2022_totals ))
+    # st.write(format_pl( pl_2022_totals ))
     st.write(format_pl( pl_2021_totals ))
     st.write(format_pl( pl_2020_totals ))
     st.write(format_pl( pl_2019_totals ))
@@ -320,9 +319,9 @@ with st.expander('PL for each group for each year'):
     # st.write(format_pl( pl_2016_totals ))
 
     ## to update depending on which quarter used, 2016 only has q4
-    # test_concat=pd.concat([pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
+    test_concat=pd.concat([pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
     # test_concat=pd.concat([pl_2022_totals,pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals,pl_2016_totals],axis=1)
-    test_concat=pd.concat([pl_2022_totals,pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals],axis=1)
+    # test_concat=pd.concat([pl_2022_totals,pl_2021_totals,pl_2020_totals,pl_2019_totals,pl_2018_totals,pl_2017_totals],axis=1)
 
     # st.write('test',test_concat)
     check_test=test_concat.loc['Net Profit before Tax and Amortisation'].reset_index()
@@ -677,7 +676,7 @@ with st.expander('Cashflow'):
     cashflow_workings_2020 = cashflow_working(cash_current=cash_2020,cash_prior=cash_2019)
     cashflow_workings_2019 = cashflow_working(cash_current=cash_2019,cash_prior=cash_2018)
     st.write('cashflow workings',cashflow_workings_2020)
-    st.markdown(get_table_download_link(cashflow_workings_2020), unsafe_allow_html=True)
+    # st.markdown(get_table_download_link(cashflow_workings_2020), unsafe_allow_html=True)
 
     def cashflow_statement(cash_workings_returned=cashflow_workings_2021,pl=pl_2021_data):
         dividends=cash_workings_returned.loc[(cash_workings_returned['Name']=='Dividends')].drop('bank',axis=1)
