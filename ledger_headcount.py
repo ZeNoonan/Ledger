@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import datetime
 import altair as alt
-from streamlit_echarts import st_echarts
+# from streamlit_echarts import st_echarts
 
 st.set_page_config(layout="wide")
 
@@ -13,6 +13,7 @@ st.set_page_config(layout="wide")
 st.write('Select start of forecast period below and actual')
 with st.echo():
     # start_forecast_period_resourcing_tool='2021-07-01 00:00:00'
+    data_2022='C:/Users/Darragh/Documents/Python/Work/Data/NL_2022_05.xlsx'
     data_2021='C:/Users/Darragh/Documents/Python/Work/Data/NL_2021_12.xlsx'
     data_2020='C:/Users/Darragh/Documents/Python/Work/Data/NL_2020.xlsx'
     data_2019='C:/Users/Darragh/Documents/Python/Work/Data/NL_2019.xlsx'
@@ -26,7 +27,8 @@ with st.echo():
 def load_ledger_data(x):
     return pd.read_excel(x,na_values=np.nan)
 
-forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/resource_planner_export_11_06_2021.xlsx')
+forecast_resourcing=load_ledger_data('C:/Users/Darragh/Documents/Python/Work/Data/resource_planner_export_07_02_2022.xlsx')
+cached_2022=load_ledger_data(data_2022).copy()
 cached_2021=load_ledger_data(data_2021).copy()
 cached_2020=load_ledger_data(data_2020).copy()
 cached_2019=load_ledger_data(data_2019).copy()
@@ -37,11 +39,11 @@ cached_2015=load_ledger_data(data_2015).copy()
 cached_2014=load_ledger_data(data_2014).copy()
 
 with st.echo():
-    start_forecast_period_resourcing_tool='2021-07-31 00:00:00'
-    forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx', sheet_name='Sheet2')
+    start_forecast_period_resourcing_tool='2022-01-31 00:00:00'
+    forecast_project_mapping=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2022_.xlsx', sheet_name='Sheet2')
     coding_acc_schedule = (pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx')).iloc[:,:3]
     coding_sort=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/account_numbers.xlsx', sheet_name='Sheet2')
-    Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2021_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
+    Project_codes=pd.read_excel('C:/Users/Darragh/Documents/Python/Work/Data/Project_Codes_2022_.xlsx').rename(columns = {'User Code' : 'SUBANALYSIS 0'})
 
 
 
@@ -111,7 +113,7 @@ def nl_raw_clean_file(x, coding_acc_schedule):
 
     return x_1
 
-
+NL_Data_22=nl_raw_clean_file(cached_2022,coding_acc_schedule)
 NL_Data_21=nl_raw_clean_file(cached_2021,coding_acc_schedule) # MUTATION
 NL_Data_20=nl_raw_clean_file(cached_2020,coding_acc_schedule) # MUTATION
 NL_Data_19=nl_raw_clean_file(cached_2019,coding_acc_schedule)
@@ -124,7 +126,7 @@ NL_Data_14=nl_raw_clean_file(cached_2014,coding_acc_schedule)
 # st.write(NL_Data_19.head())
 
 # consol_headcount_data=pd.concat([NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
-consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21],ignore_index=True)
+consol_headcount_data=pd.concat([NL_Data_14,NL_Data_15,NL_Data_16,NL_Data_17,NL_Data_18,NL_Data_19,NL_Data_20,NL_Data_21,NL_Data_22],ignore_index=True)
 # consol_headcount_data=pd.concat([NL_Data_20,NL_Data_21],ignore_index=True)
 
 
@@ -169,14 +171,14 @@ def pivot_report(bbf_headcount_data,filter='Employee'):
     return summary.reset_index().set_index(filter)
 
 # st.write('paye data')
-with st.beta_expander('BBF Staff by Employee by Month'):
+with st.expander('BBF Staff by Employee by Month'):
     bbf_pivot=pivot_report(bbf_headcount_data,filter='Employee')
     st.write(bbf_pivot)
 # david = headcount_paye[ (headcount_paye['Employee'].str.contains('Camle') &( headcount_paye['month']==12) &( headcount_paye['year']==2018) ) ]
 # st.write(david)
 
 def clean_wrangle_headcount(data):
-    x=data.query('(`Account Code`=="921-0500") or (`Account Code`=="940-0500")').loc[:,
+    x=data.query('(`Account Code`=="921-0500") or (`Account Code`=="921-0700") or (`Account Code`=="940-0500") or (`Account Code`=="940-0700")').loc[:,
     ['Journal Amount','Employee','Src. Account','Jrn. No.','year','month','date','Project','Employee - Ext. Code',
     'Acc_Schedule','Project_Name','Department','Description']]
     x=x.query('`Jrn. No.`!="000007362"') # Accrual made in march '21 which has UK employee numbers
@@ -230,7 +232,7 @@ mauve=mauve_staff(cleaned_data)
 
 mauve_pivot=pivot_report(mauve,filter='Jrn. No.')
 # st.write(mauve[(mauve['month']==7) & (mauve['year']==2020)] )
-with st.beta_expander('Mauve Staff by Invoice Number by Month'):
+with st.expander('Mauve Staff by Invoice Number by Month'):
     st.write(mauve_pivot)
     st.write('to check that only invoices from mauve are included',mauve[mauve['Src. Account']=='']) # to check that only invoices from suppliers are included, don't want journals included
 
@@ -244,10 +246,10 @@ group_UK['Headcount'] = group_UK['Journal Amount'] / group_UK['Payroll_Amt']
 group_UK['Category']='BBF_UK'
 group_UK['Headcount']=pd.to_numeric(group_UK['Headcount'])
 uk_pivot=pivot_report(group_UK,filter='Description')
-with st.beta_expander('UK Staff by Description by Month'):
+with st.expander('UK Staff by Description by Month'):
     st.write(uk_pivot)
 
-with st.beta_expander('Totals by location by month'):
+with st.expander('Totals by location by month'):
     uk_pivot_data=uk_pivot.reset_index()
     summary=pd.concat([uk_pivot.loc['All'],mauve_pivot.loc['All'],bbf_pivot.loc['All']],axis=1)
     summary.columns=['uk','mauve','bbf']
@@ -287,7 +289,7 @@ with st.beta_expander('Totals by location by month'):
 
 # st.write(summary.style.format("{:,.0f}"))
 
-with st.beta_expander('Actuals by Dept'):
+with st.expander('Actuals by Dept'):
     # st.write('Overall Headcount to date broken down by Department',bbf_headcount_data.head(5))
     # st.write('mauve', mauve.head(5))
     # st.write('uk', group_UK.head(5))
@@ -358,6 +360,7 @@ def forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_col
     x.columns= x.columns.astype(str)
     col = x.pop("Department")
     x.insert(x.columns.get_loc('Project') + 1, col.name, col)
+    # st.write('x inside forecast check date',x)
     sliced_x=x.loc[:,start_forecast_period_resourcing_tool:]
     sliced_x = sliced_x.drop(columns=[drop_column])
     sliced_x=sliced_x.set_index(keep_column).unstack(level=keep_column).reset_index().rename(columns={'level_0':'date',0:'headcount'})
@@ -366,7 +369,7 @@ def forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_col
     return x
 
 # st.write('before function',forecast_resourcing)
-with st.beta_expander('Dept: Actual + Forecast'):
+with st.expander('Dept: Actual + Forecast'):
     # st.write('resourcing tool export',forecast_resourcing.head())
     # st.write('project codes',forecast_project_mapping.head())
 
@@ -394,7 +397,16 @@ with st.beta_expander('Dept: Actual + Forecast'):
     test_data_1={'Department':['TV','CG','Post','Admin','HR','IT','Pipeline','Development']}
     test_df_1=pd.DataFrame(test_data_1).reset_index().rename(columns={'index':'order'})
     graph_data_1=pd.merge(graph_data_1,test_df_1,on='Department',how='outer')
+    graph_data_1['date']=graph_data_1['date'].dt.to_period('M').dt.to_timestamp('M') # only did as i hadn't updated start of resourcing period...
+    # so it might have been fine without it, anyway don't forget to update the start time
+    # test_data_graphing = graph_data_1[graph_data_1['date'].between(pd.to_datetime('01.01.2021'),pd.to_datetime('01.01.2022'))]
+    # st.write('test data for graphing',test_data_graphing)
+    # test_data_graphing['date']=test_data_graphing['date'].dt.to_period('M').dt.to_timestamp('M')
+
+    # test_data_graphing.date = pd.to_datetime(test_data_graphing.date.values.astype('datetime64[M]'))
+
     base=chart_area_headcount(x=graph_data_1,select_coding='Department',tooltip_selection='headcount')
+    # base=chart_area_headcount(x=test_data_graphing,select_coding='Department',tooltip_selection='headcount')
     st.altair_chart(base,use_container_width=True)
 
     selection_4 = alt.selection_multi(fields=['Department'], bind='legend')
@@ -412,7 +424,7 @@ with st.beta_expander('Dept: Actual + Forecast'):
     st.altair_chart((updated_test_chart_1).add_selection(selection_4),use_container_width=True)
 
 
-with st.beta_expander('Actuals by Project for 921'):
+with st.expander('Actuals by Project for 921'):
     # st.write(headcount_combined[headcount_combined['Acc_Schedule']==921])
     headcount_921_actual_date=headcount_combined[headcount_combined['Acc_Schedule']==921].copy()
     # st.write(headcount_921_actual_date[headcount_921_actual_date['Category'].isna()])
@@ -447,7 +459,7 @@ with st.beta_expander('Actuals by Project for 921'):
 
 
 # st.write(x)
-with st.beta_expander('Project: Actual + Forecast'):
+with st.expander('Project: Actual + Forecast'):
     # st.write(x.head())
     forecast_headcount_project=forecast_headcount_function(x,start_forecast_period_resourcing_tool,drop_column='Department',keep_column='Project')
     # st.write('this is formula result',forecast_headcount_project)
@@ -484,7 +496,7 @@ with st.beta_expander('Project: Actual + Forecast'):
 
 
 
-with st.beta_expander('Actuals split by 921/940'):
+with st.expander('Actuals split by 921/940'):
     acc_sch_pivot=pivot_report(headcount_combined,filter='Acc_Schedule')
     # st.write(acc_sch_pivot.reset_index().head())
     # st.write(acc_sch_pivot.style.format("{:,.1f}"))
@@ -513,7 +525,7 @@ with st.beta_expander('Actuals split by 921/940'):
 
 
 
-with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
+with st.expander('Actual Direct Headcount from Month 1 to Month End to compare productions from Month 1'):
     def create_pivot_comparing_production_headcount(shifted_df):
         shifted_df=shifted_df.drop('All',axis=1).drop(['All'])
         shifted_df.columns = np.arange(len(shifted_df.columns))
@@ -557,7 +569,7 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
     
     sequels=["1-Z-149 Vampirina","1-Z-181 Vampirina 2","1-Z-197 Vampirina 3","1-Z-144 Doc McStuffins IV",'1-Z-179 Doc McStuffins 5',
             '1-Z-213 Ryder Jones',"1-Z-203 Ridley Jones 2","1-Z-217 Twisty","1-Z-227 Twisty 2",
-            "1-Z-163 Karma's World","1-Z-781 KarmasWorld2"]
+            "1-Z-163 Karma's World","1-Z-263 KarmasWorld2"]
     sequel_filter=clean_pivot(data_month_2.loc[sequels,:].copy())
     sequel_filter['headcount']=sequel_filter['headcount'].replace(0,np.NaN)
 
@@ -610,181 +622,181 @@ with st.beta_expander('Actual Direct Headcount from Month 1 to Month End to comp
 
 
 
-with st.beta_expander('Trying out echarts'):
-    # with open("https://github.com/andfanilo/streamlit-echarts-demo/blob/master/data/life-expectancy-table.json") as f:
-    #     raw_data = json.load(f)
-    # countries = [
-    #     "Finland",
-    #     "France",
-    #     "Germany",
-    #     "Iceland",
-    #     "Norway",
-    #     "Poland",
-    #     "Russia",
-    #     "United Kingdom",
-    # ]
+# with st.expander('Trying out echarts'):
+#     # with open("https://github.com/andfanilo/streamlit-echarts-demo/blob/master/data/life-expectancy-table.json") as f:
+#     #     raw_data = json.load(f)
+#     # countries = [
+#     #     "Finland",
+#     #     "France",
+#     #     "Germany",
+#     #     "Iceland",
+#     #     "Norway",
+#     #     "Poland",
+#     #     "Russia",
+#     #     "United Kingdom",
+#     # ]
 
-    # datasetWithFilters = [
-    #     {
-    #         "id": f"dataset_{country}",
-    #         "fromDatasetId": "dataset_raw",
-    #         "transform": {
-    #             "type": "filter",
-    #             "config": {
-    #                 "and": [
-    #                     {"dimension": "Year", "gte": 1950},
-    #                     {"dimension": "Country", "=": country},
-    #                 ]
-    #             },
-    #         },
-    #     }
-    #     for country in countries
-    # ]
+#     # datasetWithFilters = [
+#     #     {
+#     #         "id": f"dataset_{country}",
+#     #         "fromDatasetId": "dataset_raw",
+#     #         "transform": {
+#     #             "type": "filter",
+#     #             "config": {
+#     #                 "and": [
+#     #                     {"dimension": "Year", "gte": 1950},
+#     #                     {"dimension": "Country", "=": country},
+#     #                 ]
+#     #             },
+#     #         },
+#     #     }
+#     #     for country in countries
+#     # ]
 
-    # seriesList = [
-    #     {
-    #         "type": "line",
-    #         "datasetId": f"dataset_{country}",
-    #         "showSymbol": False,
-    #         "name": country,
-    #         "endLabel": {
-    #             "show": True,
-    #             "formatter": JsCode(
-    #                 "function (params) { return params.value[3] + ': ' + params.value[0];}"
-    #             ).js_code,
-    #         },
-    #         "labelLayout": {"moveOverlap": "shiftY"},
-    #         "emphasis": {"focus": "series"},
-    #         "encode": {
-    #             "x": "Year",
-    #             "y": "Income",
-    #             "label": ["Country", "Income"],
-    #             "itemName": "Year",
-    #             "tooltip": ["Income"],
-    #         },
-    #     }
-    #     for country in countries
-    # ]
+#     # seriesList = [
+#     #     {
+#     #         "type": "line",
+#     #         "datasetId": f"dataset_{country}",
+#     #         "showSymbol": False,
+#     #         "name": country,
+#     #         "endLabel": {
+#     #             "show": True,
+#     #             "formatter": JsCode(
+#     #                 "function (params) { return params.value[3] + ': ' + params.value[0];}"
+#     #             ).js_code,
+#     #         },
+#     #         "labelLayout": {"moveOverlap": "shiftY"},
+#     #         "emphasis": {"focus": "series"},
+#     #         "encode": {
+#     #             "x": "Year",
+#     #             "y": "Income",
+#     #             "label": ["Country", "Income"],
+#     #             "itemName": "Year",
+#     #             "tooltip": ["Income"],
+#     #         },
+#     #     }
+#     #     for country in countries
+#     # ]
 
-    # option = {
-    #     "animationDuration": 10000,
-    #     "dataset": [{"id": "dataset_raw", "source": raw_data}] + datasetWithFilters,
-    #     "title": {"text": "Income in Europe since 1950"},
-    #     "tooltip": {"order": "valueDesc", "trigger": "axis"},
-    #     "xAxis": {"type": "category", "nameLocation": "middle"},
-    #     "yAxis": {"name": "Income"},
-    #     "grid": {"right": 140},
-    #     "series": seriesList,
-    # }
-    # st_echarts(options=option, height="600px")
+#     # option = {
+#     #     "animationDuration": 10000,
+#     #     "dataset": [{"id": "dataset_raw", "source": raw_data}] + datasetWithFilters,
+#     #     "title": {"text": "Income in Europe since 1950"},
+#     #     "tooltip": {"order": "valueDesc", "trigger": "axis"},
+#     #     "xAxis": {"type": "category", "nameLocation": "middle"},
+#     #     "yAxis": {"name": "Income"},
+#     #     "grid": {"right": 140},
+#     #     "series": seriesList,
+#     # }
+#     # st_echarts(options=option, height="600px")
 
-    options_1 = {
-        "title": {"text": "headcount by dept"},
-        "tooltip": {
-            "trigger": "axis",
-            "axisPointer": {"type": "cross", "label": {"backgroundColor": "#6a7985"}},
-        },
-        "legend": {"data": ["TV", "CG", "视频广告", "直接访问", "搜索引擎"]},
-        "toolbox": {"feature": {"saveAsImage": {}}},
-        "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
-        "xAxis": [
-            {
-                "type": "category",
-                "boundaryGap": False,
-                "data": ["2015", "2016", "2017", "2018", "2019", "2020", "2021"],
-            }
-        ],
-        "yAxis": [{"type": "value"}],
-        "series": [
-            {
-                "name": "TV",
-                "type": "line",
-                "stack": "headcount",
-                "areaStyle": {},
-                "emphasis": {"focus": "series"},
-                "data": [120, 132, 101, 134, 90, 230, 210],
-            },
-            {
-                "name": "CG",
-                "type": "line",
-                "stack": "headcount",
-                "areaStyle": {},
-                "emphasis": {"focus": "series"},
-                "data": [220, 182, 191, 234, 290, 330, 310],
-            },
-            {
-                "name": "视频广告",
-                "type": "line",
-                "stack": "headcount",
-                "areaStyle": {},
-                "emphasis": {"focus": "series"},
-                "data": [150, 232, 201, 154, 190, 330, 410],
-            },
-            {
-                "name": "直接访问",
-                "type": "line",
-                "stack": "headcount",
-                "areaStyle": {},
-                "emphasis": {"focus": "series"},
-                "data": [320, 332, 301, 334, 390, 330, 320],
-            },
-            {
-                "name": "搜索引擎",
-                "type": "line",
-                "stack": "headcount",
-                "label": {"show": True, "position": "top"},
-                "areaStyle": {},
-                "emphasis": {"focus": "series"},
-                "data": [820, 932, 901, 934, 1290, 1330, 1320],
-            },
-        ],
-    }
+#     options_1 = {
+#         "title": {"text": "headcount by dept"},
+#         "tooltip": {
+#             "trigger": "axis",
+#             "axisPointer": {"type": "cross", "label": {"backgroundColor": "#6a7985"}},
+#         },
+#         "legend": {"data": ["TV", "CG", "视频广告", "直接访问", "搜索引擎"]},
+#         "toolbox": {"feature": {"saveAsImage": {}}},
+#         "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+#         "xAxis": [
+#             {
+#                 "type": "category",
+#                 "boundaryGap": False,
+#                 "data": ["2015", "2016", "2017", "2018", "2019", "2020", "2021"],
+#             }
+#         ],
+#         "yAxis": [{"type": "value"}],
+#         "series": [
+#             {
+#                 "name": "TV",
+#                 "type": "line",
+#                 "stack": "headcount",
+#                 "areaStyle": {},
+#                 "emphasis": {"focus": "series"},
+#                 "data": [120, 132, 101, 134, 90, 230, 210],
+#             },
+#             {
+#                 "name": "CG",
+#                 "type": "line",
+#                 "stack": "headcount",
+#                 "areaStyle": {},
+#                 "emphasis": {"focus": "series"},
+#                 "data": [220, 182, 191, 234, 290, 330, 310],
+#             },
+#             {
+#                 "name": "视频广告",
+#                 "type": "line",
+#                 "stack": "headcount",
+#                 "areaStyle": {},
+#                 "emphasis": {"focus": "series"},
+#                 "data": [150, 232, 201, 154, 190, 330, 410],
+#             },
+#             {
+#                 "name": "直接访问",
+#                 "type": "line",
+#                 "stack": "headcount",
+#                 "areaStyle": {},
+#                 "emphasis": {"focus": "series"},
+#                 "data": [320, 332, 301, 334, 390, 330, 320],
+#             },
+#             {
+#                 "name": "搜索引擎",
+#                 "type": "line",
+#                 "stack": "headcount",
+#                 "label": {"show": True, "position": "top"},
+#                 "areaStyle": {},
+#                 "emphasis": {"focus": "series"},
+#                 "data": [820, 932, 901, 934, 1290, 1330, 1320],
+#             },
+#         ],
+#     }
 
-    st_echarts(options=options_1, height="400px")
+#     st_echarts(options=options_1, height="400px")
 
-    options_2 = {
-        "title": {"text": "折线图堆叠"},
-        "tooltip": {"trigger": "axis"},
-        "legend": {"data": ["邮件营销", "联盟广告", "视频广告", "直接访问", "搜索引擎"]},
-        "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
-        "toolbox": {"feature": {"saveAsImage": {}}},
-        "xAxis": {
-            "type": "category",
-            "boundaryGap": False,
-            "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-        },
-        "yAxis": {"type": "value"},
-        "series": [
-            {
-                "name": "邮件营销",
-                "type": "line",
-                "stack": "总量",
-                "data": [120, 132, 101, 134, 90, 230, 210],
-            },
-            {
-                "name": "联盟广告",
-                "type": "line",
-                "stack": "总量",
-                "data": [220, 182, 191, 234, 290, 330, 310],
-            },
-            {
-                "name": "视频广告",
-                "type": "line",
-                "stack": "总量",
-                "data": [150, 232, 201, 154, 190, 330, 410],
-            },
-            {
-                "name": "直接访问",
-                "type": "line",
-                "stack": "总量",
-                "data": [320, 332, 301, 334, 390, 330, 320],
-            },
-            {
-                "name": "搜索引擎",
-                "type": "line",
-                "stack": "总量",
-                "data": [820, 932, 901, 934, 1290, 1330, 1320],
-            },
-        ],
-    }
-    st_echarts(options=options_2, height="400px")
+#     options_2 = {
+#         "title": {"text": "折线图堆叠"},
+#         "tooltip": {"trigger": "axis"},
+#         "legend": {"data": ["邮件营销", "联盟广告", "视频广告", "直接访问", "搜索引擎"]},
+#         "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+#         "toolbox": {"feature": {"saveAsImage": {}}},
+#         "xAxis": {
+#             "type": "category",
+#             "boundaryGap": False,
+#             "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+#         },
+#         "yAxis": {"type": "value"},
+#         "series": [
+#             {
+#                 "name": "邮件营销",
+#                 "type": "line",
+#                 "stack": "总量",
+#                 "data": [120, 132, 101, 134, 90, 230, 210],
+#             },
+#             {
+#                 "name": "联盟广告",
+#                 "type": "line",
+#                 "stack": "总量",
+#                 "data": [220, 182, 191, 234, 290, 330, 310],
+#             },
+#             {
+#                 "name": "视频广告",
+#                 "type": "line",
+#                 "stack": "总量",
+#                 "data": [150, 232, 201, 154, 190, 330, 410],
+#             },
+#             {
+#                 "name": "直接访问",
+#                 "type": "line",
+#                 "stack": "总量",
+#                 "data": [320, 332, 301, 334, 390, 330, 320],
+#             },
+#             {
+#                 "name": "搜索引擎",
+#                 "type": "line",
+#                 "stack": "总量",
+#                 "data": [820, 932, 901, 934, 1290, 1330, 1320],
+#             },
+#         ],
+#     }
+#     st_echarts(options=options_2, height="400px")
