@@ -1,9 +1,6 @@
 import streamlit as st
 import polars as pl
 
-# For the variance analysis, 
-
-
 
 def add_account_descriptions(df):
     """
@@ -216,40 +213,264 @@ st.write(summary_by_description_budget)
 # VARIANCE ANALYSIS
 st.header("Variance Analysis - Actuals vs Budget")
 
-# Merge ledger and budget summaries by account code AND account description
-# This preserves the Account Code for sorting
-variance_analysis = summary_by_account.join(
-    summary_by_account_budget,
-    on=["Account Code", "account_description"],
+# DEBUGGING SECTION - Let's investigate the data before joining
+st.subheader("Debug Information")
+
+# Check actuals data
+actuals_debug = filtered_df.select([
+    "Account Code", 
+    "Journal Amount"
+]).filter(pl.col("Account Code").is_null()).collect()
+
+st.write(f"**Actuals with NULL Account Codes:** {len(actuals_debug)} records")
+if len(actuals_debug) > 0:
+    st.write(actuals_debug.head(10))
+
+# Check budget data
+budget_debug = filtered_budget.select([
+    "Account Code", 
+    f"Budget Sum (Months 1-{num_months_to_sum})"
+]).filter(pl.col("Account Code").is_null()).collect()
+
+st.write(f"**Budget with NULL Account Codes:** {len(budget_debug)} records")
+if len(budget_debug) > 0:
+    st.write(budget_debug.head(10))
+
+# Check unique account codes in each dataset
+actuals_accounts = filtered_df.select("Account Code").unique().sort("Account Code").collect()
+budget_accounts = filtered_budget.select("Account Code").unique().sort("Account Code").collect()
+
+st.write(f"**Unique Account Codes in Actuals:** {len(actuals_accounts)}")
+st.write(f"**Unique Account Codes in Budget:** {len(budget_accounts)}")
+
+# Find accounts that exist in budget but not in actuals
+budget_only = budget_accounts.join(actuals_accounts, on="Account Code", how="anti")
+st.write(f"**Accounts in Budget but NOT in Actuals:** {len(budget_only)}")
+if len(budget_only) > 0:
+    st.write(budget_only.head(10))
+
+# Find accounts that exist in actuals but not in budget  
+actuals_only = actuals_accounts.join(budget_accounts, on="Account Code", how="anti")
+st.write(f"**Accounts in Actuals but NOT in Budget:** {len(actuals_only)}")
+if len(actuals_only) > 0:
+    st.write(actuals_only.head(10))
+
+# Create variance analysis table
+# First, get actuals data grouped by account code
+actuals_for_variance = filtered_df.group_by("Account Code").agg([
+    pl.sum("Journal Amount").alias("Total Amount"),
+    pl.first("account_description").alias("Account Description")
+]).with_columns(
+    # Add 3-digit mapping column
+    pl.col("Account Code").str.slice(0, 3).alias("3_digit_mapping")
+)
+
+# Get budget data grouped by account code
+budget_for_variance = filtered_budget.group_by("Account Code").agg([
+    pl.sum(f"Budget Sum (Months 1-{num_months_to_sum})").alias("Total Budget"),
+    pl.first("account_description").alias("Account Description")
+]).with_columns(
+    # Add 3-digit mapping column
+    pl.col("Account Code").str.slice(0, 3).alias("3_digit_mapping")
+)
+
+st.write('budget for variance', budget_for_variance)
+
+# Perform full outer join to capture all accounts from both datasets
+variance_analysis = actuals_for_variance.join(
+    budget_for_variance,
+    on="Account Code",
     how="full"
 ).with_columns([
-    # Fill null values with 0 for accounts that don't exist in both datasets
+    # Coalesce account descriptions (use actuals first, then budget)
+    pl.coalesce([pl.col("Account Description"), pl.col("Account Description_right")]).alias("Account Description"),
+    # Coalesce 3-digit mappings
+    pl.coalesce([pl.col("3_digit_mapping"), pl.col("3_digit_mapping_right")]).alias("3_digit_mapping"),
+    # Fill nulls with 0 for amounts
     pl.col("Total Amount").fill_null(0),
     pl.col("Total Budget").fill_null(0)
 ]).with_columns([
     # Calculate variance (Actual - Budget)
     (pl.col("Total Amount") - pl.col("Total Budget")).alias("Variance")
-]).sort("Account Code")  # Sort by Account Code
+]).select([
+    "Account Code",
+    "Account Description", 
+    "3_digit_mapping",
+    "Total Amount",
+    "Total Budget",
+    "Variance"
+]).sort("Account Code")
 
-# Verification: Check that table totals match individual calculations
-table_total_amount = variance_analysis.select(pl.sum("Total Amount")).item()
-table_total_budget = variance_analysis.select(pl.sum("Total Budget")).item()
+# Collect the variance analysis
+variance_table = variance_analysis.collect()
 
-st.write("**DATA VERIFICATION:**")
-st.write(f"Individual calculation - Total Amount: {total_amount:,.0f}")
-st.write(f"Table sum - Total Amount: {table_total_amount:,.0f}")
-st.write(f"✓ Match: {total_amount == table_total_amount}")
+st.write("**Variance Analysis Table:**")
+st.write(variance_table)
 
-st.write(f"Individual calculation - Total Budget: {total_budget_value:,.0f}")
-st.write(f"Table sum - Total Budget: {table_total_budget:,.0f}")
-st.write(f"✓ Match: {total_budget_value == table_total_budget}")
+# VALIDATION TESTS
+st.subheader("Validation Tests")
 
-st.write("**Variance Analysis by Account Description (Actuals vs Budget):**")
-st.write("Positive variance = Actual > Budget | Negative variance = Actual < Budget")
-st.write(variance_analysis)
+# Test 1: Verify actuals total matches original
+original_actuals_total = total_amount
+variance_actuals_total = variance_table.select(pl.sum("Total Amount")).item()
+
+st.write(f"**Actuals Validation:**")
+st.write(f"Original actuals total: {original_actuals_total:,.0f}")
+st.write(f"Variance table actuals total: {variance_actuals_total:,.0f}")
+st.write(f"Difference: {abs(original_actuals_total - variance_actuals_total):,.0f}")
+
+if abs(original_actuals_total - variance_actuals_total) < 0.01:
+    st.success("✅ PASS: Actuals totals match!")
+else:
+    st.error("❌ FAIL: Actuals totals do not match!")
+
+# Test 2: Verify budget total matches original
+original_budget_total = total_budget_value
+variance_budget_total = variance_table.select(pl.sum("Total Budget")).item()
+
+st.write(f"**Budget Validation:**")
+st.write(f"Original budget total: {original_budget_total:,.0f}")
+st.write(f"Variance table budget total: {variance_budget_total:,.0f}")
+st.write(f"Difference: {abs(original_budget_total - variance_budget_total):,.0f}")
+
+if abs(original_budget_total - variance_budget_total) < 0.01:
+    st.success("✅ PASS: Budget totals match!")
+else:
+    st.error("❌ FAIL: Budget totals do not match!")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 st.write("###################################################################################################")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import streamlit as st
 import polars as pl
