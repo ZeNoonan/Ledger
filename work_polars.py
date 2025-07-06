@@ -2,77 +2,6 @@ import streamlit as st
 import polars as pl
 
 
-def add_account_descriptions(df):
-    """
-    Add account descriptions based on account codes.
-    
-    Parameters:
-    -----------
-    df : pl.LazyFrame
-        DataFrame with 'Account Code' column
-    
-    Returns:
-    --------
-    pl.LazyFrame
-        DataFrame with added 'account_description' column
-    """
-    
-    # Define mapping for first 3 digits to descriptions
-    # You can modify these mappings as needed
-    three_digit_mapping = {
-        "920": "Sales",
-        "921": "Cost of Sales",
-        "924": "Cost of Sales",
-        "926": "Advertising",
-        "940": "Indirect Costs",
-        "941": "Direct Costs",
-        "942": "Materials",
-        "943": "Labor",
-        "944": "Overhead",
-        "946": "Utilities",
-        "947": "Legal Audit",
-        "948": "Computer Costs",
-        "951": "Depreciation",
-        "953": "Other 953",
-        "954": "Other 954",
-        "955": "Other 955",
-        "956": "Other 956",
-        "971": "Bank Charges",
-        "972": "Interest",
-        "973": "FX Gains/Losses",
-        # Add more mappings as needed for codes up to 980
-        "980": "Tax"
-    }
-    
-    # Define specific mapping for 999 codes
-    # You can add more specific 999 mappings here
-    specific_999_mapping = {
-        "999-0110": "Interco Shared Services",
-        "999-0200": "Write-off",
-        # Add more specific 999 mappings as needed
-        # "999-0300": "Another Description",
-    }
-    
-    # Create the account description column
-    df = df.with_columns(
-        pl.when(
-            # Handle specific 999 codes first
-            pl.col("Account Code").is_in(list(specific_999_mapping.keys()))
-        ).then(
-            pl.col("Account Code").replace(specific_999_mapping)
-        ).when(
-            # Handle first 3 digits mapping
-            pl.col("Account Code").str.slice(0, 3).is_in(list(three_digit_mapping.keys()))
-        ).then(
-            pl.col("Account Code").str.slice(0, 3).replace(three_digit_mapping)
-        ).otherwise(
-            # Default for unmapped codes
-            pl.lit("Unmapped Account")
-        ).alias("account_description")
-    )
-    
-    return df
-
 # LEDGER ACTUALS PROCESSING
 st.header("Ledger Actuals Analysis")
 
@@ -84,7 +13,6 @@ df = pl.read_excel(
 ).lazy()
 
 # Add account descriptions to ledger actuals
-df = add_account_descriptions(df)
 
 # Filter account codes from 920-0000 to 999-9999
 # We'll use string comparison since account codes are stored as strings
@@ -103,20 +31,13 @@ st.write(f"**TOTAL AMOUNT**: The total Journal Amount for accounts 920-0000 to 9
 st.write(f"Use this value ({total_amount:,.0f}) to cross-check against your other source.")
 
 # Summary by account code with descriptions
-summary_by_account = filtered_df.group_by(["Account Code", "account_description"]).agg(
+summary_by_account = filtered_df.group_by(["Account Code"]).agg(
     pl.sum("Journal Amount").alias("Total Amount")
 ).sort("Account Code").collect()
 
 st.write("**Ledger Summary by Account Code:**")
 st.write(summary_by_account)
 
-# Summary by account description category
-summary_by_description = filtered_df.group_by("account_description").agg(
-    pl.sum("Journal Amount").alias("Total Amount")
-).sort("Total Amount", descending=True).collect()
-
-st.write("**Ledger Summary by Account Description:**")
-st.write(summary_by_description)
 
 # BUDGET PROCESSING
 st.header("Budget Analysis")
@@ -176,9 +97,6 @@ num_months_to_sum = 6  # Change this to sum different number of months
 # Process the budget file
 budget_df = process_budget_file(file_path, sheet_name, num_months_to_sum)
 
-# Add account descriptions
-budget_df = add_account_descriptions(budget_df)
-
 # Filter account codes from 920-0000 to 999-9999 (same as previous query)
 filtered_budget = budget_df.filter(
     (pl.col("Account Code") >= "920-0000") & 
@@ -195,20 +113,13 @@ st.write(f"**TOTAL AMOUNT**: The total budget for accounts 920-0000 to 999-9999 
 st.write(f"Use this value ({total_budget_value:,.0f}) to cross-check against your other source.")
 
 # Summary by account code with descriptions
-summary_by_account_budget = filtered_budget.group_by(["Account Code", "account_description"]).agg(
+summary_by_account_budget = filtered_budget.group_by(["Account Code"]).agg(
     pl.sum(f"Budget Sum (Months 1-{num_months_to_sum})").alias("Total Budget")
 ).sort("Account Code").collect()
 
 st.write("**Budget Summary by Account Code:**")
 st.write(summary_by_account_budget)
 
-# Summary by account description category
-summary_by_description_budget = filtered_budget.group_by("account_description").agg(
-    pl.sum(f"Budget Sum (Months 1-{num_months_to_sum})").alias("Total Budget")
-).sort("Total Budget", descending=True).collect()
-
-st.write("**Budget Summary by Account Description:**")
-st.write(summary_by_description_budget)
 
 # VARIANCE ANALYSIS
 st.header("Variance Analysis - Actuals vs Budget")
@@ -259,33 +170,29 @@ if len(actuals_only) > 0:
 # First, get actuals data grouped by account code
 actuals_for_variance = filtered_df.group_by("Account Code").agg([
     pl.sum("Journal Amount").alias("Total Amount"),
-    pl.first("account_description").alias("Account Description")
-]).with_columns(
-    # Add 3-digit mapping column
-    pl.col("Account Code").str.slice(0, 3).alias("3_digit_mapping")
-)
+])
 
 # Get budget data grouped by account code
 budget_for_variance = filtered_budget.group_by("Account Code").agg([
     pl.sum(f"Budget Sum (Months 1-{num_months_to_sum})").alias("Total Budget"),
-    pl.first("account_description").alias("Account Description")
-]).with_columns(
-    # Add 3-digit mapping column
-    pl.col("Account Code").str.slice(0, 3).alias("3_digit_mapping")
-)
+])
 
+st.write('actuals for variance', actuals_for_variance)
 st.write('budget for variance', budget_for_variance)
-
+test_df=actuals_for_variance.join(
+    budget_for_variance,
+    on="Account Code",
+    how="full",
+    coalesce=True
+).collect()
+st.write('test_df', test_df)
 # Perform full outer join to capture all accounts from both datasets
 variance_analysis = actuals_for_variance.join(
     budget_for_variance,
     on="Account Code",
-    how="full"
+    how="full",
+    coalesce=True
 ).with_columns([
-    # Coalesce account descriptions (use actuals first, then budget)
-    pl.coalesce([pl.col("Account Description"), pl.col("Account Description_right")]).alias("Account Description"),
-    # Coalesce 3-digit mappings
-    pl.coalesce([pl.col("3_digit_mapping"), pl.col("3_digit_mapping_right")]).alias("3_digit_mapping"),
     # Fill nulls with 0 for amounts
     pl.col("Total Amount").fill_null(0),
     pl.col("Total Budget").fill_null(0)
@@ -294,8 +201,6 @@ variance_analysis = actuals_for_variance.join(
     (pl.col("Total Amount") - pl.col("Total Budget")).alias("Variance")
 ]).select([
     "Account Code",
-    "Account Description", 
-    "3_digit_mapping",
     "Total Amount",
     "Total Budget",
     "Variance"
@@ -544,6 +449,9 @@ def add_account_descriptions(df):
     
     return df
 
+# Number of months for analysis (used by both ledger and budget)
+num_months_to_sum = st.number_input("Number of months for analysis:", min_value=1, max_value=12, value=5, step=1)
+
 # LEDGER ACTUALS PROCESSING
 st.header("Ledger Actuals Analysis")
 
@@ -556,7 +464,6 @@ df = pd.read_excel(
 )
 
 # Add account descriptions to ledger actuals
-df = add_account_descriptions(df)
 
 # Filter account codes from 920-0000 to 999-9999
 # We'll use string comparison since account codes are stored as strings
@@ -565,13 +472,22 @@ filtered_df = df[
     (df["Account Code"] <= "999-9999")
 ].copy()
 
-# Calculate the total sum
-total_amount = filtered_df["Journal Amount"].sum()
-st.write(f"**TOTAL AMOUNT**: The total Journal Amount for accounts 920-0000 to 999-9999 is {total_amount:,.0f}")
-st.write(f"Use this value ({total_amount:,.0f}) to cross-check against your other source.")
+# Create first df: Filter for the specific month number
+filtered_df_single_month = filtered_df[filtered_df["Per."] == num_months_to_sum].copy()
 
-# Summary by account code with descriptions
-summary_by_account = (filtered_df.groupby(["Account Code", "account_description"])["Journal Amount"]
+# Create second df: Filter for months 1 up to the selected month number
+filtered_df_cumulative = filtered_df[filtered_df["Per."] <= num_months_to_sum].copy()
+
+# Calculate totals for both datasets
+total_amount_single_month = filtered_df_single_month["Journal Amount"].sum()
+total_amount_cumulative = filtered_df_cumulative["Journal Amount"].sum()
+
+st.write(f"**TOTAL AMOUNT (Month {num_months_to_sum} only)**: {total_amount_single_month:,.0f}")
+st.write(f"**TOTAL AMOUNT (Months 1-{num_months_to_sum})**: {total_amount_cumulative:,.0f}")
+st.write(f"Use these values to cross-check against your other source.")
+
+# Summary by account code with descriptions (using cumulative data)
+summary_by_account = (filtered_df_cumulative.groupby(["Account Code", "account_description"])["Journal Amount"]
                      .sum()
                      .reset_index()
                      .rename(columns={"Journal Amount": "Total Amount"})
@@ -580,8 +496,8 @@ summary_by_account = (filtered_df.groupby(["Account Code", "account_description"
 # st.write("**Ledger Summary by Account Code:**")
 # st.write(summary_by_account)
 
-# Summary by account description category
-summary_by_description = (filtered_df.groupby("account_description")["Journal Amount"]
+# Summary by account description category (using cumulative data)
+summary_by_description = (filtered_df_cumulative.groupby("account_description")["Journal Amount"]
                          .sum()
                          .reset_index()
                          .rename(columns={"Journal Amount": "Total Amount"})
@@ -634,13 +550,12 @@ def process_budget_file(file_path, sheet_name, num_months=12):
 # Example usage
 file_path = "C:/Users/Darragh/Documents/Python/ledger/Budget_2022.xlsx"
 sheet_name = "Budget"  # Change this to the actual sheet name you want to use
-num_months_to_sum = 6  # Change this to sum different number of months
+# num_months_to_sum is already defined above and shared between ledger and budget
 
 # Process the budget file
 budget_df = process_budget_file(file_path, sheet_name, num_months_to_sum)
 
 # Add account descriptions
-budget_df = add_account_descriptions(budget_df)
 
 # Filter account codes from 920-0000 to 999-9999 (same as previous query)
 filtered_budget = budget_df[
@@ -692,8 +607,8 @@ actuals_only = actuals_only[~actuals_only["Account Code"].isin(budget_accounts)]
 #     st.write(actuals_only.head(10))
 
 # Create variance analysis table
-# First, get actuals data grouped by account code
-actuals_for_variance = (filtered_df.groupby("Account Code")
+# First, get actuals data grouped by account code (using cumulative data)
+actuals_for_variance = (filtered_df_cumulative.groupby("Account Code")
                        .agg({
                            "Journal Amount": "sum",
                            "account_description": "first"
@@ -759,16 +674,16 @@ variance_total_amount = variance_table["Total Amount"].sum()
 variance_total_budget = variance_table["Total Budget"].sum()
 
 st.write("**Reconciliation Check:**")
-st.write(f"Original Ledger Total Amount: {total_amount:,.0f}")
+st.write(f"Original Ledger Total Amount (Cumulative): {total_amount_cumulative:,.0f}")
 st.write(f"Variance Table Total Amount: {variance_total_amount:,.0f}")
-st.write(f"Difference (Ledger - Variance): {total_amount - variance_total_amount:,.0f}")
+st.write(f"Difference (Ledger - Variance): {total_amount_cumulative - variance_total_amount:,.0f}")
 
 st.write(f"Original Budget Total Amount: {total_budget_value:,.0f}")
 st.write(f"Variance Table Total Budget: {variance_total_budget:,.0f}")
 st.write(f"Difference (Budget - Variance): {total_budget_value - variance_total_budget:,.0f}")
 
 # Check if totals match (allowing for small floating point differences)
-ledger_match = abs(total_amount - variance_total_amount) < 0.01
+ledger_match = abs(total_amount_cumulative - variance_total_amount) < 0.01
 budget_match = abs(total_budget_value - variance_total_budget) < 0.01
 
 if ledger_match and budget_match:
@@ -776,6 +691,6 @@ if ledger_match and budget_match:
 else:
     st.error("❌ VALIDATION FAILED: Totals do not match!")
     if not ledger_match:
-        st.error(f"Ledger totals mismatch: {total_amount:,.2f} vs {variance_total_amount:,.2f}")
+        st.error(f"Ledger totals mismatch: {total_amount_cumulative:,.2f} vs {variance_total_amount:,.2f}")
     if not budget_match:
         st.error(f"Budget totals mismatch: {total_budget_value:,.2f} vs {variance_total_budget:,.2f}")
