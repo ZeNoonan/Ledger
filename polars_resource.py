@@ -1,6 +1,10 @@
 import streamlit as st
 import polars as pl
 
+st.set_page_config(layout="wide")
+
+st.write('I think the next thing to work on is the Employee Number in the ledger, as that is what is in the Budget file')
+
 df = pl.read_excel(
     source="C:/Users/Darragh/Documents/Python/ledger/NL_2022_05.xlsx",
     sheet_name="Sheet1",
@@ -54,30 +58,26 @@ df = pl.read_excel(
     has_header=True,
 ).lazy()
 
-# print(df.collect_schema())
-
-# st.dataframe(df.collect())
-# print(df.collect())
-
-
+# Fixed column names based on the actual schema from the error message
 df_long = df.unpivot(
-    id_vars=["Project Name", "Emp. num", "Emp. tpe", "Division", "Dept", "Title"],
-    value_vars=[1, 2, 3, 4, 5, 6],
+    index=["Project", "Name", "Emp. num", "Emp. tpe", "Division", "Dept", "Title"],
+    on=["1", "2", "3", "4", "5", "6"],
     variable_name="Month",
     value_name="Amount"
-)
-
-
-# date_columns = [col for col in df.columns if col.endswith("-25") or col.endswith("-26")]
-# description_columns = [col for col in df.columns if col not in date_columns]
-
-# df_long = df.melt(
-#     id_vars=description_columns,
-#     value_vars=date_columns,
-#     variable_name="Month",
-#     value_name="Amount"
-# )
-
+).with_columns(
+    pl.col("Month").cast(pl.Int64),  # Convert Month column from string to integer
+    (pl.col("Amount") * 0.1105).alias("ER PRSI"),  # Add ER PRSI column (Amount * 11.05%)
+    pl.when(pl.col("Division") == "TV")
+        .then(pl.col("Amount") * 0.10)  # 10% for tv
+        .when(pl.col("Division") == "CG")
+        .then(pl.col("Amount") * 0.20)  # 20% for dvd
+        .when(pl.col("Division") == "Post")
+        .then(pl.col("Amount") * 0.50)  # 50% for video
+        .otherwise(0)  # Default to 0 if none match
+        .alias("Pension")
+).with_columns(
+    (pl.col("Amount") + pl.col("ER PRSI") + pl.col("Pension")).alias("Total_Amount")  # Sum all three columns
+).collect()
 
 st.write("**Budget:**")
 st.write(df_long)
