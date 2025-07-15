@@ -10,11 +10,6 @@ df = pl.read_excel(
     sheet_name="Sheet1",
     columns=["Employee - Ext. Code", "Per.", "Account Code", "Journal Amount", "Employee"]
 ).with_columns(
-    pl.col("Employee - Ext. Code")
-    .fill_null("")
-    .str.strip_chars()  # Remove whitespace
-    .map_elements(lambda x: None if x == "" else x, return_dtype=pl.Utf8)  # Convert empty strings to null
-    .cast(pl.Int64),
     pl.col("Per.")
     .fill_null("")
     .str.strip_chars()  # Remove whitespace
