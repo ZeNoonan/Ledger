@@ -24,8 +24,10 @@ st.write(df.collect_schema()["Employee - Ext. Code"])
 
 # We'll use string comparison since account codes are stored as strings
 filtered_df = df.filter(
-    (pl.col("Account Code") >= "921-0500") & 
-    (pl.col("Account Code") <= "921-0700")
+    (pl.col("Account Code") == "921-0500") |
+    (pl.col("Account Code") == "921-0550") |     
+    (pl.col("Account Code") == "921-0600") |
+    (pl.col("Account Code") == "921-0702") 
 )
 
 # Calculate the total sum using LazyFrame operations
@@ -43,7 +45,18 @@ summary_by_employee_all_periods = filtered_df.group_by(["Employee","Employee - E
 ).sort("Employee").collect()
 
 # However Can I also get this summary by employee filtered further by 'Per.' column where it is filtered by the largest amount in the 'Per.' column?
-max_period = filtered_df.select(pl.max("Per.")).collect().to_series().item()
+# Get the actual max period for default value
+actual_max_period = filtered_df.select(pl.max("Per.")).collect().to_series().item()
+
+# User input for max period
+max_period = st.number_input(
+    "Select the period number to filter by:",
+    min_value=1,
+    max_value=12,
+    value=actual_max_period,
+    step=1
+)
+
 summary_by_employee_filtered_max_period = filtered_df.filter(
     pl.col("Per.") == max_period
 ).group_by(["Employee","Employee - Ext. Code"]).agg(
@@ -72,19 +85,20 @@ df_budget = pl.read_excel(
 
 # Fixed column names based on the actual schema from the error message
 df_budget_all_detail = df_budget.unpivot(
-    index=["Project", "Name", "Emp. num", "Emp. tpe", "Division", "Dept", "Title"],
-    on=["1", "2", "3", "4", "5", "6"],
-    variable_name="Month",
+    index=["Project", "Name", "Emp. num", "Emp. type", "Division", "Dept", "Title"],
+    on=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+    variable_name="Per.",
     value_name="Amount"
 ).with_columns(
-    pl.col("Month").cast(pl.Int64),  # Convert Month column from string to integer
+    pl.col("Per.").cast(pl.Int64),  # Convert Month column from string to integer
+    pl.col("Emp. num").cast(pl.Utf8),  # Convert to string after reading
     (pl.col("Amount") * 0.1105).alias("ER PRSI"),  # Add ER PRSI column (Amount * 11.05%)
     pl.when(pl.col("Division") == "TV")
-        .then(pl.col("Amount") * 0.10)  # 10% for tv
+        .then(pl.col("Amount") * 0.0145)  # 10% for tv
         .when(pl.col("Division") == "CG")
-        .then(pl.col("Amount") * 0.20)  # 20% for dvd
+        .then(pl.col("Amount") * 0.018)  # 20% for dvd
         .when(pl.col("Division") == "Post")
-        .then(pl.col("Amount") * 0.50)  # 50% for video
+        .then(pl.col("Amount") * 0.02)  # 50% for video
         .otherwise(0)  # Default to 0 if none match
         .alias("Pension")
 ).with_columns(
@@ -115,14 +129,14 @@ st.write("**Data type of LEDGER 'Per.' column:**")
 st.write(df.collect_schema()["Per."])
 
 # # Check the data type of Budget on the period which is in the 'Month' column
-st.write("**Data type of BUDGET 'Month' column:**")
-st.write(df_budget_all_detail.collect_schema()["Month"])
+st.write("**Data type of BUDGET 'Per.' column:**")
+st.write(df_budget_all_detail.collect_schema()["Per."])
 
 
 # this is to get the summary employee for the same period as the ledger
 # FIXED: Removed .collect() since df_budget_all_detail is already a DataFrame
 budget_by_employee_filtered_max_period = df_budget_all_detail.filter(
-    pl.col("Month") == max_period
+    pl.col("Per.") == max_period
 ).group_by(["Name","Emp. num"]).agg(
     pl.sum("Amount")
 ).sort("Name")  # Removed .collect() here
@@ -130,24 +144,58 @@ budget_by_employee_filtered_max_period = df_budget_all_detail.filter(
 st.write("**Budget Summary by Employee for max period:**")
 st.write(budget_by_employee_filtered_max_period)
 
-# Join the ledger summary with budget summary
-# First, let's rename columns to be clearer after the join
-ledger_summary_renamed = summary_by_employee_all_periods.rename({
+# NEW CODE: Use the max_period from user input for analysis
+specific_period = max_period
+
+# Create summaries for specific period (month 6 only)
+st.write(f"## Analysis for Period {specific_period} Only")
+
+# Ledger summary for specific period
+ledger_summary_specific_period = filtered_df.filter(
+    pl.col("Per.") == specific_period
+).group_by(["Employee","Employee - Ext. Code"]).agg(
+    pl.sum("Journal Amount")
+).sort("Employee").collect()
+
+# Budget summary for specific period
+budget_summary_specific_period = df_budget_all_detail.filter(
+    pl.col("Per.") == specific_period
+).group_by(["Name","Emp. num"]).agg(
+    pl.sum("Amount")
+).sort("Name")
+
+# Create summaries for cumulative periods (up to and including month 6)
+st.write(f"## Analysis for Periods 1 through {specific_period} (Cumulative)")
+
+# Ledger summary for cumulative periods
+ledger_summary_cumulative = filtered_df.filter(
+    pl.col("Per.") <= specific_period
+).group_by(["Employee","Employee - Ext. Code"]).agg(
+    pl.sum("Journal Amount")
+).sort("Employee").collect()
+
+# Budget summary for cumulative periods
+budget_summary_cumulative = df_budget_all_detail.filter(
+    pl.col("Per.") <= specific_period
+).group_by(["Name","Emp. num"]).agg(
+    pl.sum("Amount")
+).sort("Name")
+
+# FIRST MERGED SUMMARY: For specific period only (month 6)
+ledger_summary_specific_renamed = ledger_summary_specific_period.rename({
     "Journal Amount": "Ledger_Amount"
 })
 
-budget_summary_renamed = budget_by_employee_all_periods.rename({
+budget_summary_specific_renamed = budget_summary_specific_period.rename({
     "Amount": "Budget_Amount"
 })
 
-# Perform the join on Employee - Ext. Code (ledger) and Emp. num (budget)
-merged_summary = ledger_summary_renamed.join(
-    budget_summary_renamed,
+merged_summary_specific_period = ledger_summary_specific_renamed.join(
+    budget_summary_specific_renamed,
     left_on="Employee - Ext. Code",
     right_on="Emp. num",
-    how="full"  # Use outer join to see all employees from both tables
+    how="full"
 ).with_columns(
-    # Calculate variance (Ledger - Budget)
     (pl.col("Ledger_Amount").fill_null(0) - pl.col("Budget_Amount").fill_null(0)).alias("Variance")
 ).select([
     "Employee",
@@ -159,15 +207,54 @@ merged_summary = ledger_summary_renamed.join(
     "Variance"
 ]).sort("Employee")
 
-st.write("**Merged Summary: Ledger vs Budget (All Periods):**")
-st.write(merged_summary)
+st.write(f"**Merged Summary: Ledger vs Budget (Period {specific_period} Only):**")
+st.write(merged_summary_specific_period)
 
-# Calculate totals for the three numeric columns
-totals = merged_summary.select([
+# Calculate totals for specific period
+totals_specific = merged_summary_specific_period.select([
     pl.sum("Ledger_Amount").fill_null(0).alias("Total_Ledger"),
     pl.sum("Budget_Amount").fill_null(0).alias("Total_Budget"),
     pl.sum("Variance").fill_null(0).alias("Total_Variance")
 ])
 
-st.write("**Totals:**")
-st.write(totals)
+st.write(f"**Totals for Period {specific_period}:**")
+st.write(totals_specific)
+
+# SECOND MERGED SUMMARY: For cumulative periods (up to and including month 6)
+ledger_summary_cumulative_renamed = ledger_summary_cumulative.rename({
+    "Journal Amount": "Ledger_Amount"
+})
+
+budget_summary_cumulative_renamed = budget_summary_cumulative.rename({
+    "Amount": "Budget_Amount"
+})
+
+merged_summary_cumulative = ledger_summary_cumulative_renamed.join(
+    budget_summary_cumulative_renamed,
+    left_on="Employee - Ext. Code",
+    right_on="Emp. num",
+    how="full"
+).with_columns(
+    (pl.col("Ledger_Amount").fill_null(0) - pl.col("Budget_Amount").fill_null(0)).alias("Variance")
+).select([
+    "Employee",
+    "Name", 
+    "Employee - Ext. Code",
+    "Emp. num",
+    "Ledger_Amount",
+    "Budget_Amount", 
+    "Variance"
+]).sort("Employee")
+
+st.write(f"**Merged Summary: Ledger vs Budget (Cumulative Periods 1-{specific_period}):**")
+st.write(merged_summary_cumulative)
+
+# Calculate totals for cumulative periods
+totals_cumulative = merged_summary_cumulative.select([
+    pl.sum("Ledger_Amount").fill_null(0).alias("Total_Ledger"),
+    pl.sum("Budget_Amount").fill_null(0).alias("Total_Budget"),
+    pl.sum("Variance").fill_null(0).alias("Total_Variance")
+])
+
+st.write(f"**Totals for Cumulative Periods 1-{specific_period}:**")
+st.write(totals_cumulative)
